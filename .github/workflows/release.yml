@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Versione da rilasciare (es. 0.2.0)'
+        description: 'Versione da rilasciare (es. 0.3.0)'
         required: false
-        default: '0.2.0'
+        default: '0.3.0'
 
 jobs:
   build-windows:
@@ -111,6 +111,14 @@ jobs:
 
             Bundle completamente autosufficiente: **zero connessioni internet** necessarie sul PC di destinazione.
 
+            ### Novità v0.3.0
+            - **Orologio live** nella sidebar (HH:MM:SS + data in italiano)
+            - **Sposta elementi** — nelle finestre di modifica puoi cambiare il progetto/categoria/attività di appartenenza
+            - **Data di inizio automatica** — `startedAt` viene valorizzata automaticamente quando un'attività passa a "In corso"
+            - **Dipendenze tra attività** — propedeuticità opzionale molti-a-molti con badge visivo "bloccata"
+            - **Dipendenze tra task** — stessa logica con icone lucchetto e chip prerequisiti
+            - **Promemoria e notifiche desktop** — flag su ogni task con scadenza, notifiche Web Notification API, badge nell'header
+
             ### Contenuto del bundle (${{ env.SIZE }})
             | Componente | Dettaglio |
             |---|---|
@@ -128,12 +136,16 @@ jobs:
 
             Il programma viene installato in `C:\Program Files\TaskFlow\` con collegamento sul Desktop e nel Menu Start.
 
+            ### Installazione senza Admin (PC aziendali)
+            Usa `install-user.bat` (doppio clic normale) — installa in `%APPDATA%\TaskFlow`, nessuna richiesta UAC.
+
             ### Avvio diretto (senza installare)
             Estrai il ZIP e fai doppio clic su `start.bat`.
             Oppure usa `taskflow.vbs` per avviare senza finestra di terminale.
 
             ### Disinstallazione
-            Clic destro su `uninstall.bat` → Esegui come amministratore.
+            - Con Admin: clic destro su `uninstall.bat` → Esegui come amministratore
+            - Senza Admin: doppio clic su `uninstall-user.bat`
           files: dist/${{ env.BUNDLE }}.zip
           draft: false
           prerelease: false
