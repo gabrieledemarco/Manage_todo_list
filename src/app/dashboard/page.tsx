@@ -56,9 +56,9 @@ export default function DashboardPage() {
   ] : []
 
   const statusData = stats ? [
-    { name: 'Da fare', value: stats.tasksByStatus.todo, color: '#64748b' },
-    { name: 'In corso', value: stats.tasksByStatus.in_progress, color: '#f59e0b' },
-    { name: 'Completate', value: stats.tasksByStatus.done, color: '#22c55e' }
+    { name: 'Da fare', value: stats.activitiesByStatus.todo, color: '#64748b' },
+    { name: 'In corso', value: stats.activitiesByStatus.in_progress, color: '#f59e0b' },
+    { name: 'Completate', value: stats.activitiesByStatus.done, color: '#22c55e' }
   ] : []
 
   if (loading) {

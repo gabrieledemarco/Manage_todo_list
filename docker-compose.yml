@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  taskflow:
+    build: .
+    container_name: taskflow
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - taskflow_data:/app/data
+    environment:
+      - DATABASE_URL=file:/app/data/taskflow.db
+      - NODE_ENV=production
+
+volumes:
+  taskflow_data:

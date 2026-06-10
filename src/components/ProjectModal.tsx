@@ -66,50 +66,60 @@ export default function ProjectModal({ isOpen, onClose, onSave, project }: Proje
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md border border-slate-700">
-        <div className="flex items-center justify-between p-6 border-b border-slate-700">
-          <h2 className="text-xl font-semibold text-white">
+    <div className="fixed inset-0 flex items-center justify-center z-50"
+      style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(12px)' }}>
+      <div className="rounded-2xl shadow-2xl w-full max-w-md animate-slide-in"
+        style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-strong)' }}>
+        <div className="flex items-center justify-between px-6 py-5" style={{ borderBottom: '1px solid var(--border)' }}>
+          <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
             {project ? 'Modifica Progetto' : 'Nuovo Progetto'}
           </h2>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
+          <button onClick={onClose}
+            className="p-1.5 rounded-lg transition-colors"
+            style={{ color: 'var(--text-tertiary)' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.08)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--text-tertiary)' }}
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
               Nome progetto
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+              className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--accent)'}
+              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'}
               placeholder="Es. Sito Web Aziendale"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
               Descrizione
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all resize-none"
+              className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none resize-none"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--accent)'}
+              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'}
               placeholder="Breve descrizione del progetto..."
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
               Colore
             </label>
             <div className="flex flex-wrap gap-2">
@@ -118,27 +128,34 @@ export default function ProjectModal({ isOpen, onClose, onSave, project }: Proje
                   key={c}
                   type="button"
                   onClick={() => setColor(c)}
-                  className={`w-8 h-8 rounded-full transition-all ${
-                    color === c ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-800 scale-110' : 'hover:scale-110'
-                  }`}
-                  style={{ backgroundColor: c }}
+                  className="w-7 h-7 rounded-full transition-all"
+                  style={{
+                    backgroundColor: c,
+                    outline: color === c ? `2px solid ${c}` : 'none',
+                    outlineOffset: '2px',
+                    transform: color === c ? 'scale(1.15)' : 'scale(1)'
+                  }}
                 />
               ))}
             </div>
           </div>
 
-          <div className="flex gap-3 pt-4">
+          <div className="flex gap-3 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-3 bg-slate-700 text-slate-300 rounded-lg font-medium hover:bg-slate-600 transition-colors"
+              className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
+              style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.1)'}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'}
             >
               Annulla
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-500 disabled:opacity-50 transition-colors"
+              className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white transition-all disabled:opacity-50"
+              style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
             >
               {loading ? 'Salvataggio...' : project ? 'Salva' : 'Crea'}
             </button>
