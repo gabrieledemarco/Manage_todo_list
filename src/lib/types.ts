@@ -3,6 +3,9 @@ export interface Project {
   name: string
   description?: string | null
   color: string
+  parentId?: string | null
+  parent?: Project | null
+  children?: Project[]
   createdAt: string
   updatedAt: string
   categories?: Category[]

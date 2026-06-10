@@ -8,7 +8,8 @@ import {
   Calendar,
   BarChart3,
   Plus,
-  ChevronRight
+  ChevronRight,
+  FolderOpen
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { Project } from '@/lib/types'
@@ -136,8 +137,9 @@ export default function Sidebar() {
           </div>
 
           <ul className="space-y-1">
-            {projects.map((project) => {
+            {projects.filter(p => !p.parentId).map((project) => {
               const isExpanded = expandedProjects.has(project.id)
+              const children = projects.filter(p => p.parentId === project.id)
               return (
                 <li key={project.id}>
                   <div className="flex items-center">
@@ -156,9 +158,46 @@ export default function Sidebar() {
                       <span className="truncate text-sm">{project.name}</span>
                     </button>
                   </div>
-                  {isExpanded && project.categories && (
+                  {isExpanded && (
                     <ul className="ml-8 mt-1 space-y-1 border-l border-slate-700 pl-3">
-                      {project.categories.map((category) => (
+                      {/* Sub-projects */}
+                      {children.map((child) => (
+                        <li key={child.id}>
+                          <button
+                            onClick={() => toggleProject(child.id)}
+                            className="w-full flex items-center gap-2 px-3 py-1.5 rounded text-slate-400 hover:text-white hover:bg-slate-800/50 text-sm transition-colors"
+                          >
+                            <ChevronRight
+                              size={11}
+                              className={`transition-transform flex-shrink-0 ${expandedProjects.has(child.id) ? 'rotate-90' : ''}`}
+                            />
+                            <FolderOpen size={12} className="flex-shrink-0" style={{ color: child.color }} />
+                            <span className="truncate text-xs">{child.name}</span>
+                          </button>
+                          {expandedProjects.has(child.id) && child.categories && (
+                            <ul className="ml-5 mt-0.5 space-y-0.5 border-l border-slate-700/50 pl-2">
+                              {child.categories.map(category => (
+                                <li key={category.id}>
+                                  <Link
+                                    href={`/projects/${child.id}?category=${category.id}`}
+                                    className="flex items-center gap-2 px-2 py-1 rounded text-slate-500 hover:text-white hover:bg-slate-800/40 text-xs transition-colors"
+                                  >
+                                    <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: category.color }} />
+                                    <span className="truncate">{category.name}</span>
+                                    {category.activities && (
+                                      <span className="ml-auto text-xs bg-slate-700 px-1 py-0.5 rounded-full text-slate-400">
+                                        {category.activities.length}
+                                      </span>
+                                    )}
+                                  </Link>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </li>
+                      ))}
+                      {/* Categories of the root project */}
+                      {project.categories && project.categories.map((category) => (
                         <li key={category.id}>
                           <Link
                             href={`/projects/${project.id}?category=${category.id}`}
