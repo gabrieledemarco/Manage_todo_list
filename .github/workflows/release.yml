@@ -1,6 +1,9 @@
 name: Build & Release Portable Bundle
 
 on:
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       version:
@@ -17,6 +20,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Resolve version
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_ENV"
+          else
+            echo "VERSION=${{ github.event.inputs.version }}" >> "$GITHUB_ENV"
+          fi
 
       - name: Setup Node.js 20
         uses: actions/setup-node@v4
@@ -43,7 +54,7 @@ jobs:
 
       - name: Assemble portable bundle
         run: |
-          VERSION="${{ github.event.inputs.version }}"
+          VERSION="${{ env.VERSION }}"
           BUNDLE="taskflow-windows-v${VERSION}"
           DEST="dist/${BUNDLE}"
 
