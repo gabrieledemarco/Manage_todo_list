@@ -1,9 +1,18 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url)
+    const reminderFilter = searchParams.get('reminder')
+
+    const where: Record<string, unknown> = {}
+    if (reminderFilter === 'true') {
+      where.reminder = true
+    }
+
     const tasks = await prisma.task.findMany({
+      where,
       include: {
         activity: {
           include: {
@@ -11,6 +20,13 @@ export async function GET() {
               include: {
                 project: true
               }
+            }
+          }
+        },
+        dependsOn: {
+          include: {
+            prerequisite: {
+              select: { id: true, title: true, completed: true }
             }
           }
         }
@@ -26,16 +42,18 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { title, description, completed, dueDate, priority, activityId } = body
-    
+    const { title, description, completed, dueDate, priority, activityId, reminder, reminderDays } = body
+
     const task = await prisma.task.create({
-      data: { 
-        title, 
-        description, 
-        completed, 
+      data: {
+        title,
+        description,
+        completed,
         dueDate: dueDate ? new Date(dueDate) : null,
-        priority, 
-        activityId 
+        priority,
+        activityId,
+        reminder: reminder ?? false,
+        reminderDays: reminderDays ?? 1
       }
     })
     return NextResponse.json(task, { status: 201 })

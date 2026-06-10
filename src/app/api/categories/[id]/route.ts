@@ -34,11 +34,16 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
-    const { name, description, color } = body
-    
+    const { name, description, color, projectId } = body
+
+    const data: Record<string, unknown> = { name, description, color }
+    if (projectId) {
+      data.projectId = projectId
+    }
+
     const category = await prisma.category.update({
       where: { id },
-      data: { name, description, color }
+      data: data as Parameters<typeof prisma.category.update>[0]['data']
     })
     return NextResponse.json(category)
   } catch (error) {

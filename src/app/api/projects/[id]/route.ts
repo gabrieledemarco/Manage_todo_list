@@ -14,7 +14,24 @@ export async function GET(
           include: {
             activities: {
               include: {
-                tasks: true
+                tasks: {
+                  include: {
+                    dependsOn: {
+                      include: {
+                        prerequisite: {
+                          select: { id: true, title: true, completed: true }
+                        }
+                      }
+                    }
+                  }
+                },
+                dependsOn: {
+                  include: {
+                    prerequisite: {
+                      select: { id: true, name: true, status: true }
+                    }
+                  }
+                }
               }
             }
           }
@@ -38,7 +55,7 @@ export async function PUT(
     const { id } = await params
     const body = await request.json()
     const { name, description, color } = body
-    
+
     const project = await prisma.project.update({
       where: { id },
       data: { name, description, color }

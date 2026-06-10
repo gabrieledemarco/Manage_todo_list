@@ -94,7 +94,7 @@ powershell -NoProfile -Command ^
 echo [5/5] Registrazione nel sistema...
 set REG_KEY=HKLM\Software\Microsoft\Windows\CurrentVersion\Uninstall\TaskFlow
 reg add "%REG_KEY%" /v DisplayName     /t REG_SZ   /d "TaskFlow"                         /f >nul
-reg add "%REG_KEY%" /v DisplayVersion  /t REG_SZ   /d "0.2.0"                            /f >nul
+reg add "%REG_KEY%" /v DisplayVersion  /t REG_SZ   /d "0.3.0"                            /f >nul
 reg add "%REG_KEY%" /v Publisher       /t REG_SZ   /d "TaskFlow"                         /f >nul
 reg add "%REG_KEY%" /v InstallLocation /t REG_SZ   /d "%INSTALL_DIR%"                   /f >nul
 reg add "%REG_KEY%" /v UninstallString /t REG_SZ   /d "%INSTALL_DIR%\uninstall.bat"     /f >nul
