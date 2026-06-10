@@ -62,9 +62,9 @@ export async function GET() {
       low: allTasks.filter(t => t.priority === 'low').length
     }
 
-    // Tasks by status
+    // Activities by status
     const activities = await prisma.activity.findMany()
-    const tasksByStatus = {
+    const activitiesByStatus = {
       todo: activities.filter(a => a.status === 'todo').length,
       in_progress: activities.filter(a => a.status === 'in_progress').length,
       done: activities.filter(a => a.status === 'done').length
@@ -105,7 +105,7 @@ export async function GET() {
         completionRate: allTasks.length > 0 ? Math.round((completedTasks / allTasks.length) * 100) : 0
       },
       tasksByPriority,
-      tasksByStatus,
+      activitiesByStatus,
       weeklyData
     })
   } catch (error) {

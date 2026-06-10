@@ -1,6 +1,9 @@
 name: Build & Release Portable Bundle
 
 on:
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       version:
@@ -15,10 +18,16 @@ jobs:
       contents: write
 
     steps:
-      - name: Checkout (feature branch with all source code)
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: claude/repo-analysis-frontend-modernize-fst2gm
+
+      - name: Resolve version
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_ENV"
+          else
+            echo "VERSION=${{ github.event.inputs.version }}" >> "$GITHUB_ENV"
+          fi
 
       - name: Setup Node.js 20
         uses: actions/setup-node@v4
@@ -31,11 +40,6 @@ jobs:
 
       - name: Generate Prisma client (all binary targets)
         run: npx prisma generate
-
-      - name: Create seed database
-        run: |
-          DATABASE_URL="file:${GITHUB_WORKSPACE}/prisma/seed.db" npx prisma migrate deploy
-          ls -lh prisma/seed.db
 
       - name: Build Next.js standalone
         run: npm run build
@@ -50,38 +54,49 @@ jobs:
 
       - name: Assemble portable bundle
         run: |
-          VERSION="${{ github.event.inputs.version }}"
+          VERSION="${{ env.VERSION }}"
           BUNDLE="taskflow-windows-v${VERSION}"
           DEST="dist/${BUNDLE}"
 
           mkdir -p "${DEST}/node" "${DEST}/prisma" "${DEST}/data"
 
+          # Standalone server + all required node_modules
           cp -r .next/standalone/. "${DEST}/"
+
+          # Static assets (not included in standalone automatically)
           mkdir -p "${DEST}/.next/static"
           cp -r .next/static/. "${DEST}/.next/static/"
+
+          # Public folder
           [ -d public ] && cp -r public/. "${DEST}/public/" || true
 
+          # Prisma schema + migrations + pre-initialized seed DB
           cp prisma/schema.prisma  "${DEST}/prisma/"
           cp -r prisma/migrations  "${DEST}/prisma/"
           cp prisma/seed.db        "${DEST}/prisma/"
 
+          # Prisma runtime engine binaries (all platforms bundled)
           cp -r node_modules/.prisma "${DEST}/node_modules/.prisma"
           cp -r node_modules/@prisma "${DEST}/node_modules/@prisma"
 
+          # Portable Node.js binary
           cp /tmp/node-win/node-v20.18.3-win-x64/node.exe "${DEST}/node/"
 
+          # Windows launcher scripts
           cp installer/start.bat     "${DEST}/"
           cp installer/install.bat   "${DEST}/"
           cp installer/uninstall.bat "${DEST}/"
           cp installer/taskflow.vbs  "${DEST}/"
 
+          # Create ZIP
           cd dist
           zip -r "${BUNDLE}.zip" "${BUNDLE}/"
 
           SIZE=$(du -sh "${BUNDLE}.zip" | cut -f1)
-          echo "BUNDLE=${BUNDLE}"   >> "$GITHUB_ENV"
+          echo "BUNDLE=${BUNDLE}"  >> "$GITHUB_ENV"
           echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
           echo "SIZE=${SIZE}"       >> "$GITHUB_ENV"
+
           echo "Bundle: ${BUNDLE}.zip (${SIZE})"
 
       - name: Create GitHub Release
@@ -101,6 +116,7 @@ jobs:
             | `server.js` + `node_modules/` | App Next.js standalone con tutte le dipendenze |
             | `.next/static/` + `public/` | Tutti gli asset statici (CSS, JS, immagini) |
             | `prisma/seed.db` | Schema SQLite pre-inizializzato — nessuna migrazione necessaria |
+            | `installer/` | Script install/uninstall/start per Windows |
 
             ### Installazione (con privilegi Admin)
             1. Scarica `${{ env.BUNDLE }}.zip`
@@ -112,7 +128,7 @@ jobs:
 
             ### Avvio diretto (senza installare)
             Estrai il ZIP e fai doppio clic su `start.bat`.
-            Oppure usa `taskflow.vbs` per avviare senza finestra di terminale e con apertura automatica del browser.
+            Oppure usa `taskflow.vbs` per avviare senza finestra di terminale.
 
             ### Disinstallazione
             Clic destro su `uninstall.bat` → Esegui come amministratore.

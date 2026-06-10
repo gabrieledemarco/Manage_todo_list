@@ -2,14 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { 
-  LayoutDashboard, 
-  FolderKanban, 
-  Calendar, 
-  BarChart3,
-  Plus,
-  ChevronRight
-} from 'lucide-react'
+import { LayoutDashboard, FolderKanban, Calendar, BarChart3, Plus, ChevronRight } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { Project } from '@/lib/types'
 
@@ -26,130 +19,117 @@ export default function Sidebar() {
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set())
 
   useEffect(() => {
-    fetchProjects()
+    fetch('/api/projects').then(r => r.ok ? r.json() : []).then(setProjects).catch(() => {})
   }, [])
 
-  const fetchProjects = async () => {
-    try {
-      const res = await fetch('/api/projects')
-      if (res.ok) {
-        const data = await res.json()
-        setProjects(data)
-      }
-    } catch (error) {
-      console.error('Failed to fetch projects:', error)
-    }
-  }
-
-  const toggleProject = (projectId: string) => {
-    const newExpanded = new Set(expandedProjects)
-    if (newExpanded.has(projectId)) {
-      newExpanded.delete(projectId)
-    } else {
-      newExpanded.add(projectId)
-    }
-    setExpandedProjects(newExpanded)
+  const toggleProject = (id: string) => {
+    setExpandedProjects(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
   }
 
   return (
-    <aside className="w-64 bg-slate-900 text-white flex flex-col h-screen fixed left-0 top-0">
-      <div className="p-6 border-b border-slate-800">
-        <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
-          TaskFlow
-        </h1>
-        <p className="text-slate-400 text-sm mt-1">Gestione progetti</p>
+    <aside style={{ background: 'var(--bg-elevated)', borderRight: '1px solid var(--border)' }}
+      className="w-64 text-white flex flex-col h-screen fixed left-0 top-0 z-40">
+
+      {/* Brand */}
+      <div className="px-5 py-5" style={{ borderBottom: '1px solid var(--border)' }}>
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+            style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
+            <FolderKanban size={16} className="text-white" />
+          </div>
+          <div>
+            <div className="font-bold text-base tracking-tight" style={{ color: 'var(--text-primary)' }}>TaskFlow</div>
+            <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Gestione progetti</div>
+          </div>
+        </div>
       </div>
 
-      <nav className="flex-1 overflow-y-auto p-4">
-        <ul className="space-y-1">
+      {/* Nav */}
+      <nav className="flex-1 overflow-y-auto py-4 px-3">
+        <div className="space-y-0.5">
           {navItems.map((item) => {
             const Icon = item.icon
             const isActive = pathname === item.href
             return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
-                    isActive
-                      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/25'
-                      : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                  }`}
-                >
-                  <Icon size={20} />
-                  <span className="font-medium">{item.label}</span>
-                </Link>
-              </li>
+              <Link key={item.href} href={item.href}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 relative group"
+                style={{
+                  background: isActive ? 'rgba(99,102,241,0.12)' : 'transparent',
+                  color: isActive ? '#818cf8' : 'var(--text-secondary)'
+                }}
+                onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.04)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)' }}
+                onMouseLeave={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)' } }}
+              >
+                {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full" style={{ background: '#6366f1' }} />}
+                <Icon size={17} />
+                <span className="text-sm font-medium">{item.label}</span>
+              </Link>
             )
           })}
-        </ul>
+        </div>
 
-        <div className="mt-8">
-          <div className="flex items-center justify-between px-4 mb-2">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Progetti
-            </span>
-            <Link
-              href="/projects?new=true"
-              className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+        {/* Projects section */}
+        <div className="mt-6">
+          <div className="flex items-center justify-between px-3 mb-2">
+            <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-tertiary)' }}>Progetti</span>
+            <Link href="/projects?new=true"
+              className="p-1 rounded-md transition-colors"
+              style={{ color: 'var(--text-tertiary)' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)' }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--text-tertiary)' }}
             >
-              <Plus size={16} />
+              <Plus size={14} />
             </Link>
           </div>
-          
-          <ul className="space-y-1">
+
+          <div className="space-y-0.5">
             {projects.map((project) => {
               const isExpanded = expandedProjects.has(project.id)
+              const isProjectActive = pathname.startsWith(`/projects/${project.id}`)
               return (
-                <li key={project.id}>
-                  <div className="flex items-center">
-                    <button
-                      onClick={() => toggleProject(project.id)}
-                      className="flex-1 flex items-center gap-2 px-4 py-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-all"
-                    >
-                      <ChevronRight
-                        size={14}
-                        className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`}
-                      />
-                      <span
-                        className="w-3 h-3 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: project.color }}
-                      />
-                      <span className="truncate text-sm">{project.name}</span>
-                    </button>
-                  </div>
+                <div key={project.id}>
+                  <button onClick={() => toggleProject(project.id)}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all duration-150"
+                    style={{ color: isProjectActive ? 'var(--text-primary)' : 'var(--text-secondary)' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.04)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)' }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = isProjectActive ? 'var(--text-primary)' : 'var(--text-secondary)' }}
+                  >
+                    <ChevronRight size={13} className={`flex-shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} style={{ color: 'var(--text-tertiary)' }} />
+                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: project.color }} />
+                    <span className="text-sm truncate">{project.name}</span>
+                  </button>
+
                   {isExpanded && project.categories && (
-                    <ul className="ml-8 mt-1 space-y-1 border-l border-slate-700 pl-3">
-                      {project.categories.map((category) => (
-                        <li key={category.id}>
-                          <Link
-                            href={`/projects/${project.id}?category=${category.id}`}
-                            className="flex items-center gap-2 px-3 py-1.5 rounded text-slate-400 hover:text-white hover:bg-slate-800/50 text-sm transition-colors"
-                          >
-                            <span
-                              className="w-2 h-2 rounded-full flex-shrink-0"
-                              style={{ backgroundColor: category.color }}
-                            />
-                            <span className="truncate">{category.name}</span>
-                            {category.activities && (
-                              <span className="ml-auto text-xs bg-slate-700 px-1.5 py-0.5 rounded-full">
-                                {category.activities.length}
-                              </span>
-                            )}
-                          </Link>
-                        </li>
+                    <div className="ml-5 pl-3 mt-0.5 space-y-0.5" style={{ borderLeft: '1px solid var(--border)' }}>
+                      {project.categories.map((cat) => (
+                        <Link key={cat.id} href={`/projects/${project.id}?category=${cat.id}`}
+                          className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs transition-all duration-150"
+                          style={{ color: 'var(--text-tertiary)' }}
+                          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.04)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)' }}
+                          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--text-tertiary)' }}
+                        >
+                          <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
+                          <span className="truncate">{cat.name}</span>
+                          {cat.activities && <span className="ml-auto text-xs px-1.5 py-0.5 rounded-full font-medium" style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-tertiary)' }}>{cat.activities.length}</span>}
+                        </Link>
                       ))}
-                    </ul>
+                    </div>
                   )}
-                </li>
+                </div>
               )
             })}
-          </ul>
+          </div>
         </div>
       </nav>
 
-      <div className="p-4 border-t border-slate-800">
-        <div className="text-xs text-slate-500 text-center">
-          TaskFlow v1.0 • Self-hosted
+      {/* Footer */}
+      <div className="px-4 py-3" style={{ borderTop: '1px solid var(--border)' }}>
+        <div className="text-xs text-center" style={{ color: 'var(--text-tertiary)' }}>
+          TaskFlow v0.2.0 · Self-hosted
         </div>
       </div>
     </aside>

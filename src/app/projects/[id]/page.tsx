@@ -3,20 +3,9 @@
 import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { 
-  ArrowLeft, 
-  Plus, 
-  Folder, 
-  ListTodo, 
-  CheckCircle2,
-  Clock,
-  AlertTriangle,
-  MoreVertical,
-  Pencil,
-  Trash2,
-  ChevronDown,
-  ChevronRight,
-  CheckSquare
+import {
+  ArrowLeft, Plus, Folder, ListTodo, CheckCircle2, Clock, AlertTriangle,
+  Pencil, Trash2, ChevronDown, ChevronRight, Check
 } from 'lucide-react'
 import { Project, Category, Activity, Task } from '@/lib/types'
 import CategoryModal from '@/components/CategoryModal'
@@ -31,7 +20,6 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const [allCategories, setAllCategories] = useState<Category[]>([])
   const [allActivities, setAllActivities] = useState<Activity[]>([])
   const [loading, setLoading] = useState(true)
-  
   const [showCategoryModal, setShowCategoryModal] = useState(false)
   const [showActivityModal, setShowActivityModal] = useState(false)
   const [showTaskModal, setShowTaskModal] = useState(false)
@@ -44,368 +32,282 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const [expandedActivities, setExpandedActivities] = useState<Set<string>>(new Set())
 
   useEffect(() => {
-    fetchProject()
-    fetchAllCategories()
-    fetchAllActivities()
+    fetchProject(); fetchAllCategories(); fetchAllActivities()
   }, [id])
 
   const fetchProject = async () => {
     try {
-      const res = await fetch(`/api/projects/${id}`)
-      if (res.ok) {
-        const data = await res.json()
-        setProject(data)
-        setCategories(data.categories || [])
-      } else if (res.status === 404) {
-        router.push('/projects')
-      }
-    } catch (error) {
-      console.error('Error fetching project:', error)
-    } finally {
-      setLoading(false)
-    }
+      const r = await fetch(`/api/projects/${id}`)
+      if (r.ok) { const d = await r.json(); setProject(d); setCategories(d.categories || []) }
+      else if (r.status === 404) router.push('/projects')
+    } catch (e) { console.error(e) } finally { setLoading(false) }
   }
-
   const fetchAllCategories = async () => {
-    try {
-      const res = await fetch('/api/categories')
-      if (res.ok) {
-        const data = await res.json()
-        setAllCategories(data)
-      }
-    } catch (error) {
-      console.error('Error fetching categories:', error)
-    }
+    try { const r = await fetch('/api/categories'); if (r.ok) setAllCategories(await r.json()) } catch {}
   }
-
   const fetchAllActivities = async () => {
-    try {
-      const res = await fetch('/api/activities')
-      if (res.ok) {
-        const data = await res.json()
-        setAllActivities(data)
-      }
-    } catch (error) {
-      console.error('Error fetching activities:', error)
-    }
+    try { const r = await fetch('/api/activities'); if (r.ok) setAllActivities(await r.json()) } catch {}
   }
+  const toggleCategory = (catId: string) => setExpandedCategories(prev => { const n = new Set(prev); n.has(catId) ? n.delete(catId) : n.add(catId); return n })
+  const toggleActivity = (actId: string) => setExpandedActivities(prev => { const n = new Set(prev); n.has(actId) ? n.delete(actId) : n.add(actId); return n })
 
-  const toggleCategory = (categoryId: string) => {
-    const newExpanded = new Set(expandedCategories)
-    if (newExpanded.has(categoryId)) {
-      newExpanded.delete(categoryId)
-    } else {
-      newExpanded.add(categoryId)
-    }
-    setExpandedCategories(newExpanded)
+  const handleDeleteCategory = async (catId: string) => {
+    if (!confirm('Eliminare questa categoria?')) return
+    await fetch(`/api/categories/${catId}`, { method: 'DELETE' })
+    fetchProject(); fetchAllCategories()
   }
-
-  const toggleActivity = (activityId: string) => {
-    const newExpanded = new Set(expandedActivities)
-    if (newExpanded.has(activityId)) {
-      newExpanded.delete(activityId)
-    } else {
-      newExpanded.add(activityId)
-    }
-    setExpandedActivities(newExpanded)
+  const handleDeleteActivity = async (actId: string) => {
+    if (!confirm('Eliminare questa attività?')) return
+    await fetch(`/api/activities/${actId}`, { method: 'DELETE' })
+    fetchProject(); fetchAllActivities()
   }
-
-  const handleDeleteCategory = async (categoryId: string) => {
-    if (!confirm('Sei sicuro di voler eliminare questa categoria?')) return
-    try {
-      await fetch(`/api/categories/${categoryId}`, { method: 'DELETE' })
-      fetchProject()
-      fetchAllCategories()
-    } catch (error) {
-      console.error('Error deleting category:', error)
-    }
-  }
-
-  const handleDeleteActivity = async (activityId: string) => {
-    if (!confirm('Sei sicuro di voler eliminare questa attività?')) return
-    try {
-      await fetch(`/api/activities/${activityId}`, { method: 'DELETE' })
-      fetchProject()
-      fetchAllActivities()
-    } catch (error) {
-      console.error('Error deleting activity:', error)
-    }
-  }
-
   const handleDeleteTask = async (taskId: string) => {
-    try {
-      await fetch(`/api/tasks/${taskId}`, { method: 'DELETE' })
-      fetchProject()
-    } catch (error) {
-      console.error('Error deleting task:', error)
-    }
+    await fetch(`/api/tasks/${taskId}`, { method: 'DELETE' })
+    fetchProject()
   }
-
   const handleToggleTask = async (task: Task) => {
-    try {
-      await fetch(`/api/tasks/${task.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...task, completed: !task.completed })
-      })
-      fetchProject()
-    } catch (error) {
-      console.error('Error toggling task:', error)
-    }
+    await fetch(`/api/tasks/${task.id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...task, completed: !task.completed })
+    })
+    fetchProject()
   }
 
-  const getPriorityIcon = (priority: string) => {
-    switch (priority) {
-      case 'high': return <AlertTriangle size={14} className="text-red-400" />
-      case 'medium': return <Clock size={14} className="text-amber-400" />
-      case 'low': return <CheckCircle2 size={14} className="text-emerald-400" />
-      default: return null
-    }
+  const getPriorityStyle = (p: string) => {
+    if (p === 'high') return { bg: 'rgba(239,68,68,0.1)', color: '#ef4444' }
+    if (p === 'medium') return { bg: 'rgba(245,158,11,0.1)', color: '#f59e0b' }
+    return { bg: 'rgba(16,185,129,0.1)', color: '#10b981' }
   }
+  const formatDate = (d: string) => new Date(d).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })
+  const isOverdue = (task: Task) => !task.completed && task.dueDate && new Date(task.dueDate) < new Date()
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })
-  }
-
-  const isOverdue = (task: Task) => {
-    return !task.completed && task.dueDate && new Date(task.dueDate) < new Date()
+  const statusConfig: Record<string, { label: string; bg: string; color: string }> = {
+    todo: { label: 'Da fare', bg: 'rgba(255,255,255,0.06)', color: 'var(--text-tertiary)' },
+    in_progress: { label: 'In corso', bg: 'rgba(245,158,11,0.1)', color: '#f59e0b' },
+    done: { label: 'Completato', bg: 'rgba(16,185,129,0.1)', color: '#10b981' }
   }
 
   if (loading) {
     return (
-      <div className="p-8 flex items-center justify-center h-full">
-        <div className="animate-pulse text-slate-400">Caricamento...</div>
+      <div className="p-8 space-y-6">
+        <div className="flex items-center gap-3"><div className="skeleton w-8 h-8 rounded-lg" /><div className="skeleton h-7 w-48" /></div>
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="rounded-2xl p-5" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+            <div className="skeleton h-6 w-32 mb-4" />
+            <div className="space-y-3">{[...Array(2)].map((_, j) => <div key={j} className="skeleton h-10 rounded-xl" />)}</div>
+          </div>
+        ))}
       </div>
     )
   }
-
-  if (!project) {
-    return null
-  }
+  if (!project) return null
 
   return (
-    <div className="p-8 space-y-8 animate-fade-in">
-      <div className="flex items-center gap-4">
-        <Link
-          href="/projects"
-          className="p-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+    <div className="p-8 space-y-6 animate-fade-in">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <Link href="/projects"
+          className="p-2 rounded-xl transition-colors"
+          style={{ color: 'var(--text-secondary)' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)' }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)' }}
         >
-          <ArrowLeft size={20} />
+          <ArrowLeft size={18} />
         </Link>
         <div className="flex items-center gap-3 flex-1">
-          <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center"
-            style={{ backgroundColor: project.color + '20' }}
-          >
-            <Folder size={20} style={{ color: project.color }} />
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: project.color + '20' }}>
+            <Folder size={18} style={{ color: project.color }} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">{project.name}</h1>
-            {project.description && (
-              <p className="text-slate-400 text-sm">{project.description}</p>
-            )}
+            <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{project.name}</h1>
+            {project.description && <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{project.description}</p>}
           </div>
         </div>
-        <button
-          onClick={() => {
-            setEditingCategory(null)
-            setShowCategoryModal(true)
-          }}
-          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-500 transition-colors"
+        <button onClick={() => { setEditingCategory(null); setShowCategoryModal(true) }}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all"
+          style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981', border: '1px solid rgba(16,185,129,0.25)' }}
+          onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(16,185,129,0.25)'}
+          onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'rgba(16,185,129,0.15)'}
         >
-          <Plus size={18} />
-          Categoria
+          <Plus size={16} /> Categoria
         </button>
       </div>
 
-      <div className="space-y-4">
+      {/* Categories */}
+      <div className="space-y-3">
         {categories.length === 0 ? (
-          <div className="bg-slate-800/50 rounded-2xl border border-slate-700 p-12 text-center">
-            <ListTodo size={64} className="mx-auto text-slate-600 mb-4" />
-            <h2 className="text-xl font-semibold text-white mb-2">Nessuna categoria</h2>
-            <p className="text-slate-400 mb-6">Aggiungi una categoria per organizzare le tue attività</p>
-            <button
-              onClick={() => setShowCategoryModal(true)}
-              className="inline-flex items-center gap-2 px-5 py-3 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-500 transition-colors"
+          <div className="rounded-2xl p-14 text-center" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+            <div className="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center" style={{ background: 'rgba(16,185,129,0.1)' }}>
+              <ListTodo size={28} style={{ color: '#10b981' }} />
+            </div>
+            <h2 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Nessuna categoria</h2>
+            <p className="text-sm mb-5" style={{ color: 'var(--text-secondary)' }}>Aggiungi una categoria per organizzare le tue attività</p>
+            <button onClick={() => setShowCategoryModal(true)}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium"
+              style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981', border: '1px solid rgba(16,185,129,0.25)' }}
             >
-              <Plus size={20} />
-              Aggiungi Categoria
+              <Plus size={16} /> Aggiungi Categoria
             </button>
           </div>
         ) : (
           categories.map((category) => (
-            <div key={category.id} className="bg-slate-800/50 rounded-2xl border border-slate-700 overflow-hidden">
-              <div
-                className="flex items-center gap-3 p-4 border-b border-slate-700 cursor-pointer hover:bg-slate-800/50 transition-colors"
+            <div key={category.id} className="rounded-2xl overflow-hidden"
+              style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderLeft: `3px solid ${category.color}` }}>
+              {/* Category Header */}
+              <div className="flex items-center gap-3 p-4 cursor-pointer transition-colors"
+                style={{ borderBottom: expandedCategories.has(category.id) ? '1px solid var(--border)' : 'none' }}
                 onClick={() => toggleCategory(category.id)}
+                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.02)'}
+                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
               >
-                <button className="p-1">
-                  {expandedCategories.has(category.id) ? (
-                    <ChevronDown size={18} className="text-slate-400" />
-                  ) : (
-                    <ChevronRight size={18} className="text-slate-400" />
-                  )}
-                </button>
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center"
-                  style={{ backgroundColor: category.color + '20' }}
-                >
-                  <Folder size={16} style={{ color: category.color }} />
+                {expandedCategories.has(category.id)
+                  ? <ChevronDown size={16} style={{ color: 'var(--text-tertiary)' }} />
+                  : <ChevronRight size={16} style={{ color: 'var(--text-tertiary)' }} />}
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: category.color + '18' }}>
+                  <Folder size={14} style={{ color: category.color }} />
                 </div>
                 <div className="flex-1">
-                  <span className="font-semibold text-white">{category.name}</span>
-                  {category.description && (
-                    <span className="text-slate-400 text-sm ml-2">• {category.description}</span>
-                  )}
+                  <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{category.name}</span>
+                  {category.description && <span className="text-xs ml-2" style={{ color: 'var(--text-tertiary)' }}>· {category.description}</span>}
                 </div>
-                <div className="flex items-center gap-4">
-                  <span className="text-sm text-slate-400">
+                <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                  <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-tertiary)' }}>
                     {category.activities?.length || 0} attività
                   </span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setEditingCategory(category)
-                      setShowCategoryModal(true)
-                    }}
-                    className="p-2 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
-                  >
-                    <Pencil size={16} />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleDeleteCategory(category.id)
-                    }}
-                    className="p-2 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-red-400 transition-colors"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setSelectedCategoryId(category.id)
-                      setEditingActivity(null)
-                      setShowActivityModal(true)
-                    }}
-                    className="flex items-center gap-1 px-3 py-1.5 bg-cyan-600 text-white rounded-lg text-sm font-medium hover:bg-cyan-500 transition-colors"
-                  >
-                    <Plus size={14} />
-                    Attività
-                  </button>
+                  <button onClick={() => { setEditingCategory(category); setShowCategoryModal(true) }}
+                    className="p-1.5 rounded-lg transition-colors" style={{ color: 'var(--text-tertiary)' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.08)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)' }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--text-tertiary)' }}
+                  ><Pencil size={13} /></button>
+                  <button onClick={() => handleDeleteCategory(category.id)}
+                    className="p-1.5 rounded-lg transition-colors" style={{ color: 'var(--text-tertiary)' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.1)'; (e.currentTarget as HTMLElement).style.color = '#ef4444' }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--text-tertiary)' }}
+                  ><Trash2 size={13} /></button>
+                  <button onClick={() => { setSelectedCategoryId(category.id); setEditingActivity(null); setShowActivityModal(true) }}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                    style={{ background: 'rgba(6,182,212,0.12)', color: '#06b6d4', border: '1px solid rgba(6,182,212,0.2)' }}
+                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(6,182,212,0.2)'}
+                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'rgba(6,182,212,0.12)'}
+                  ><Plus size={12} /> Attività</button>
                 </div>
               </div>
 
+              {/* Activities */}
               {expandedCategories.has(category.id) && (
-                <div className="p-4 space-y-3">
+                <div className="p-3 space-y-2">
                   {(!category.activities || category.activities.length === 0) ? (
-                    <p className="text-center text-slate-500 py-4">Nessuna attività in questa categoria</p>
+                    <p className="text-center text-xs py-4" style={{ color: 'var(--text-tertiary)' }}>Nessuna attività in questa categoria</p>
                   ) : (
-                    category.activities.map((activity) => (
-                      <div key={activity.id} className="bg-slate-900/50 rounded-xl border border-slate-700/50 overflow-hidden">
-                        <div
-                          className="flex items-center gap-3 p-3 cursor-pointer hover:bg-slate-800/50 transition-colors"
-                          onClick={() => toggleActivity(activity.id)}
-                        >
-                          <button className="p-0.5">
-                            {expandedActivities.has(activity.id) ? (
-                              <ChevronDown size={16} className="text-slate-500" />
-                            ) : (
-                              <ChevronRight size={16} className="text-slate-500" />
-                            )}
-                          </button>
-                          <div
-                            className={`w-6 h-6 rounded flex items-center justify-center ${
-                              activity.status === 'done' ? 'bg-emerald-500/20' :
-                              activity.status === 'in_progress' ? 'bg-amber-500/20' : 'bg-slate-700'
-                            }`}
+                    category.activities.map((activity) => {
+                      const sc = statusConfig[activity.status] || statusConfig.todo
+                      return (
+                        <div key={activity.id} className="rounded-xl overflow-hidden"
+                          style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)' }}>
+                          {/* Activity Row */}
+                          <div className="flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors"
+                            onClick={() => toggleActivity(activity.id)}
+                            onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)'}
+                            onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
                           >
-                            {activity.status === 'done' ? (
-                              <CheckCircle2 size={14} className="text-emerald-400" />
-                            ) : activity.status === 'in_progress' ? (
-                              <Clock size={14} className="text-amber-400" />
-                            ) : (
-                              <ListTodo size={14} className="text-slate-400" />
-                            )}
+                            {expandedActivities.has(activity.id)
+                              ? <ChevronDown size={14} style={{ color: 'var(--text-tertiary)' }} />
+                              : <ChevronRight size={14} style={{ color: 'var(--text-tertiary)' }} />}
+                            <div className="w-5 h-5 rounded flex items-center justify-center" style={{ background: sc.bg }}>
+                              {activity.status === 'done' ? <CheckCircle2 size={12} style={{ color: sc.color }} />
+                               : activity.status === 'in_progress' ? <Clock size={12} style={{ color: sc.color }} />
+                               : <ListTodo size={12} style={{ color: sc.color }} />}
+                            </div>
+                            <span className="flex-1 text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{activity.name}</span>
+                            <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                              <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: sc.bg, color: sc.color }}>{sc.label}</span>
+                              <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{activity.tasks?.length || 0} task</span>
+                              <button onClick={() => { setEditingActivity(activity); setSelectedCategoryId(category.id); setShowActivityModal(true) }}
+                                className="p-1 rounded transition-colors" style={{ color: 'var(--text-tertiary)' }}
+                                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.08)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)' }}
+                                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--text-tertiary)' }}
+                              ><Pencil size={12} /></button>
+                              <button onClick={() => handleDeleteActivity(activity.id)}
+                                className="p-1 rounded transition-colors" style={{ color: 'var(--text-tertiary)' }}
+                                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.1)'; (e.currentTarget as HTMLElement).style.color = '#ef4444' }}
+                                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--text-tertiary)' }}
+                              ><Trash2 size={12} /></button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setSelectedActivityId(activity.id)
+                                  setEditingTask(null)
+                                  setShowTaskModal(true)
+                                }}
+                                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors"
+                                style={{ background: 'rgba(139,92,246,0.12)', color: '#a78bfa', border: '1px solid rgba(139,92,246,0.2)' }}
+                                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(139,92,246,0.2)'}
+                                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'rgba(139,92,246,0.12)'}
+                              ><Plus size={11} /> Task</button>
+                            </div>
                           </div>
-                          <span className="flex-1 text-white font-medium">{activity.name}</span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${
-                            activity.status === 'done' ? 'bg-emerald-500/20 text-emerald-400' :
-                            activity.status === 'in_progress' ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-700 text-slate-400'
-                          }`}>
-                            {activity.status === 'done' ? 'Completato' : activity.status === 'in_progress' ? 'In corso' : 'Da fare'}
-                          </span>
-                          <span className="text-sm text-slate-500">
-                            {activity.tasks?.length || 0} task
-                          </span>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleDeleteActivity(activity.id)
-                            }}
-                            className="p-1.5 rounded hover:bg-slate-700 text-slate-500 hover:text-red-400 transition-colors"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setSelectedActivityId(activity.id)
-                              setEditingActivity(activity)
-                              setShowActivityModal(true)
-                            }}
-                            className="flex items-center gap-1 px-2.5 py-1 bg-violet-600 text-white rounded-lg text-xs font-medium hover:bg-violet-500 transition-colors"
-                          >
-                            <Plus size={12} />
-                            Task
-                          </button>
-                        </div>
 
-                        {expandedActivities.has(activity.id) && (
-                          <div className="px-4 pb-4 space-y-2">
-                            {(!activity.tasks || activity.tasks.length === 0) ? (
-                              <p className="text-center text-slate-500 py-2 text-sm">Nessun task in questa attività</p>
-                            ) : (
-                              activity.tasks.map((task) => (
-                                <div
-                                  key={task.id}
-                                  className={`flex items-center gap-3 p-2.5 rounded-lg bg-slate-800/50 ${
-                                    task.completed ? 'opacity-60' : ''
-                                  } ${isOverdue(task) ? 'ring-1 ring-red-500/30' : ''}`}
-                                >
-                                  <button
-                                    onClick={() => handleToggleTask(task)}
-                                    className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-                                      task.completed
-                                        ? 'bg-emerald-500 border-emerald-500'
-                                        : 'border-slate-500 hover:border-emerald-500'
-                                    }`}
-                                  >
-                                    {task.completed && <CheckSquare size={12} className="text-white" />}
-                                  </button>
-                                  <span className={`flex-1 text-sm ${task.completed ? 'line-through text-slate-500' : 'text-white'}`}>
-                                    {task.title}
-                                  </span>
-                                  {getPriorityIcon(task.priority)}
-                                  {task.dueDate && (
-                                    <span className={`text-xs ${isOverdue(task) ? 'text-red-400' : 'text-slate-500'}`}>
-                                      {formatDate(task.dueDate)}
-                                    </span>
-                                  )}
-                                  <button
-                                    onClick={() => handleDeleteTask(task.id)}
-                                    className="p-1 rounded hover:bg-slate-700 text-slate-500 hover:text-red-400 transition-colors"
-                                  >
-                                    <Trash2 size={12} />
-                                  </button>
-                                </div>
-                              ))
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ))
+                          {/* Tasks */}
+                          {expandedActivities.has(activity.id) && (
+                            <div className="px-3 pb-3 space-y-1.5" style={{ borderTop: '1px solid var(--border)' }}>
+                              <div className="pt-2" />
+                              {(!activity.tasks || activity.tasks.length === 0) ? (
+                                <p className="text-center text-xs py-2" style={{ color: 'var(--text-tertiary)' }}>Nessun task in questa attività</p>
+                              ) : (
+                                activity.tasks.map((task) => {
+                                  const ps = getPriorityStyle(task.priority)
+                                  const overdue = isOverdue(task)
+                                  return (
+                                    <div key={task.id}
+                                      className="flex items-center gap-3 px-3 py-2 rounded-lg group/task transition-all"
+                                      style={{
+                                        background: 'rgba(255,255,255,0.02)',
+                                        border: `1px solid ${overdue ? 'rgba(239,68,68,0.3)' : 'var(--border)'}`,
+                                        opacity: task.completed ? 0.55 : 1
+                                      }}
+                                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.04)'}
+                                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.02)'}
+                                    >
+                                      <button onClick={() => handleToggleTask(task)}
+                                        className="rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all"
+                                        style={{
+                                          width: '18px', height: '18px',
+                                          background: task.completed ? '#10b981' : 'transparent',
+                                          borderColor: task.completed ? '#10b981' : 'rgba(255,255,255,0.2)'
+                                        }}
+                                        onMouseEnter={e => { if (!task.completed) (e.currentTarget as HTMLElement).style.borderColor = '#10b981' }}
+                                        onMouseLeave={e => { if (!task.completed) (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.2)' }}
+                                      >
+                                        {task.completed && <Check size={11} className="text-white" />}
+                                      </button>
+                                      <span className={`flex-1 text-xs ${task.completed ? 'line-through' : ''}`}
+                                        style={{ color: task.completed ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>
+                                        {task.title}
+                                      </span>
+                                      <span className="text-xs px-1.5 py-0.5 rounded-full font-medium"
+                                        style={{ background: ps.bg, color: ps.color }}>
+                                        {task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Media' : 'Bassa'}
+                                      </span>
+                                      {task.dueDate && (
+                                        <span className="text-xs" style={{ color: overdue ? '#ef4444' : 'var(--text-tertiary)' }}>
+                                          {formatDate(task.dueDate)}
+                                        </span>
+                                      )}
+                                      <button onClick={() => handleDeleteTask(task.id)}
+                                        className="p-1 rounded opacity-0 group-hover/task:opacity-100 transition-all"
+                                        style={{ color: 'var(--text-tertiary)' }}
+                                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.1)'; (e.currentTarget as HTMLElement).style.color = '#ef4444' }}
+                                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--text-tertiary)' }}
+                                      ><Trash2 size={12} /></button>
+                                    </div>
+                                  )
+                                })
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })
                   )}
                 </div>
               )}
@@ -414,49 +316,16 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         )}
       </div>
 
-      <CategoryModal
-        isOpen={showCategoryModal}
-        onClose={() => {
-          setShowCategoryModal(false)
-          setEditingCategory(null)
-        }}
-        onSave={() => {
-          fetchProject()
-          fetchAllCategories()
-        }}
-        category={editingCategory}
-        projectId={id}
-        projects={project ? [{ ...project }] : []}
-      />
+      <CategoryModal isOpen={showCategoryModal} onClose={() => { setShowCategoryModal(false); setEditingCategory(null) }}
+        onSave={() => { fetchProject(); fetchAllCategories() }}
+        category={editingCategory} projectId={id} projects={project ? [project] : []} />
 
-      <ActivityModal
-        isOpen={showActivityModal}
-        onClose={() => {
-          setShowActivityModal(false)
-          setEditingActivity(null)
-          setSelectedActivityId('')
-        }}
-        onSave={() => {
-          fetchProject()
-          fetchAllActivities()
-        }}
-        activity={editingActivity}
-        categoryId={selectedCategoryId}
-        categories={allCategories}
-      />
+      <ActivityModal isOpen={showActivityModal} onClose={() => { setShowActivityModal(false); setEditingActivity(null); setSelectedActivityId('') }}
+        onSave={() => { fetchProject(); fetchAllActivities() }}
+        activity={editingActivity} categoryId={selectedCategoryId} categories={allCategories} />
 
-      <TaskModal
-        isOpen={showTaskModal}
-        onClose={() => {
-          setShowTaskModal(false)
-          setEditingTask(null)
-          setSelectedActivityId('')
-        }}
-        onSave={fetchProject}
-        task={editingTask}
-        activityId={selectedActivityId}
-        activities={allActivities}
-      />
+      <TaskModal isOpen={showTaskModal} onClose={() => { setShowTaskModal(false); setEditingTask(null); setSelectedActivityId('') }}
+        onSave={fetchProject} task={editingTask} activityId={selectedActivityId} activities={allActivities} />
     </div>
   )
 }

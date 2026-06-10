@@ -60,7 +60,7 @@ export interface Stats {
     medium: number
     low: number
   }
-  tasksByStatus: {
+  activitiesByStatus: {
     todo: number
     in_progress: number
     done: number

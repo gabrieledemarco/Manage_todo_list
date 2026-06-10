@@ -37,20 +37,22 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
-    const { title, description, completed, dueDate, priority } = body
-    
+    const { title, description, completed, dueDate, priority, activityId } = body
+
     const task = await prisma.task.update({
       where: { id },
-      data: { 
-        title, 
-        description, 
-        completed, 
-        dueDate: dueDate ? new Date(dueDate) : undefined,
-        priority 
+      data: {
+        title,
+        description,
+        completed,
+        dueDate: dueDate ? new Date(dueDate) : null,
+        priority,
+        ...(activityId && { activityId })
       }
     })
     return NextResponse.json(task)
   } catch (error) {
+    console.error('Task update error:', error)
     return NextResponse.json({ error: 'Failed to update task' }, { status: 500 })
   }
 }
