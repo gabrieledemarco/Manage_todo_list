@@ -83,10 +83,12 @@ jobs:
           cp /tmp/node-win/node-v20.18.3-win-x64/node.exe "${DEST}/node/"
 
           # Windows launcher scripts
-          cp installer/start.bat     "${DEST}/"
-          cp installer/install.bat   "${DEST}/"
-          cp installer/uninstall.bat "${DEST}/"
-          cp installer/taskflow.vbs  "${DEST}/"
+          cp installer/start.bat          "${DEST}/"
+          cp installer/install.bat        "${DEST}/"
+          cp installer/install-user.bat   "${DEST}/"
+          cp installer/uninstall.bat      "${DEST}/"
+          cp installer/uninstall-user.bat "${DEST}/"
+          cp installer/taskflow.vbs       "${DEST}/"
 
           # Create ZIP
           cd dist
