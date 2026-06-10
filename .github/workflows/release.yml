@@ -1,0 +1,124 @@
+name: Build & Release Portable Bundle
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Versione da rilasciare (es. 0.2.0)'
+        required: false
+        default: '0.2.0'
+
+jobs:
+  build-windows:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout (feature branch with all source code)
+        uses: actions/checkout@v4
+        with:
+          ref: claude/repo-analysis-frontend-modernize-fst2gm
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client (all binary targets)
+        run: npx prisma generate
+
+      - name: Create seed database
+        run: |
+          DATABASE_URL="file:${GITHUB_WORKSPACE}/prisma/seed.db" npx prisma migrate deploy
+          ls -lh prisma/seed.db
+
+      - name: Build Next.js standalone
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+
+      - name: Download portable Node.js for Windows x64
+        run: |
+          NODE_VER="20.18.3"
+          wget -q "https://nodejs.org/dist/v${NODE_VER}/node-v${NODE_VER}-win-x64.zip" -O /tmp/node-win.zip
+          unzip -q /tmp/node-win.zip "node-v${NODE_VER}-win-x64/node.exe" -d /tmp/node-win/
+
+      - name: Assemble portable bundle
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          BUNDLE="taskflow-windows-v${VERSION}"
+          DEST="dist/${BUNDLE}"
+
+          mkdir -p "${DEST}/node" "${DEST}/prisma" "${DEST}/data"
+
+          cp -r .next/standalone/. "${DEST}/"
+          mkdir -p "${DEST}/.next/static"
+          cp -r .next/static/. "${DEST}/.next/static/"
+          [ -d public ] && cp -r public/. "${DEST}/public/" || true
+
+          cp prisma/schema.prisma  "${DEST}/prisma/"
+          cp -r prisma/migrations  "${DEST}/prisma/"
+          cp prisma/seed.db        "${DEST}/prisma/"
+
+          cp -r node_modules/.prisma "${DEST}/node_modules/.prisma"
+          cp -r node_modules/@prisma "${DEST}/node_modules/@prisma"
+
+          cp /tmp/node-win/node-v20.18.3-win-x64/node.exe "${DEST}/node/"
+
+          cp installer/start.bat     "${DEST}/"
+          cp installer/install.bat   "${DEST}/"
+          cp installer/uninstall.bat "${DEST}/"
+          cp installer/taskflow.vbs  "${DEST}/"
+
+          cd dist
+          zip -r "${BUNDLE}.zip" "${BUNDLE}/"
+
+          SIZE=$(du -sh "${BUNDLE}.zip" | cut -f1)
+          echo "BUNDLE=${BUNDLE}"   >> "$GITHUB_ENV"
+          echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
+          echo "SIZE=${SIZE}"       >> "$GITHUB_ENV"
+          echo "Bundle: ${BUNDLE}.zip (${SIZE})"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v${{ env.VERSION }}"
+          name: "TaskFlow v${{ env.VERSION }} — Portable Bundle Windows"
+          body: |
+            ## TaskFlow v${{ env.VERSION }} — Bundle Offline per Windows x64
+
+            Bundle completamente autosufficiente: **zero connessioni internet** necessarie sul PC di destinazione.
+
+            ### Contenuto del bundle (${{ env.SIZE }})
+            | Componente | Dettaglio |
+            |---|---|
+            | `node/node.exe` | Node.js 20.18.3 portabile — nessuna installazione richiesta |
+            | `server.js` + `node_modules/` | App Next.js standalone con tutte le dipendenze |
+            | `.next/static/` + `public/` | Tutti gli asset statici (CSS, JS, immagini) |
+            | `prisma/seed.db` | Schema SQLite pre-inizializzato — nessuna migrazione necessaria |
+
+            ### Installazione (con privilegi Admin)
+            1. Scarica `${{ env.BUNDLE }}.zip`
+            2. Estrai il contenuto in una cartella
+            3. **Clic destro su `install.bat` → Esegui come amministratore**
+            4. Apri il browser su **http://localhost:3000**
+
+            Il programma viene installato in `C:\Program Files\TaskFlow\` con collegamento sul Desktop e nel Menu Start.
+
+            ### Avvio diretto (senza installare)
+            Estrai il ZIP e fai doppio clic su `start.bat`.
+            Oppure usa `taskflow.vbs` per avviare senza finestra di terminale e con apertura automatica del browser.
+
+            ### Disinstallazione
+            Clic destro su `uninstall.bat` → Esegui come amministratore.
+          files: dist/${{ env.BUNDLE }}.zip
+          draft: false
+          prerelease: false
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
