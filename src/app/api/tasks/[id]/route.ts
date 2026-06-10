@@ -18,6 +18,13 @@ export async function GET(
               }
             }
           }
+        },
+        dependsOn: {
+          include: {
+            prerequisite: {
+              select: { id: true, title: true, completed: true }
+            }
+          }
         }
       }
     })
@@ -37,22 +44,32 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
-    const { title, description, completed, dueDate, priority, activityId } = body
+    const { title, description, completed, dueDate, priority, activityId, reminder, reminderDays } = body
+
+    const data: Record<string, unknown> = {
+      title,
+      description,
+      completed,
+      dueDate: dueDate !== undefined ? (dueDate ? new Date(dueDate) : null) : undefined,
+      priority
+    }
+
+    if (activityId !== undefined) {
+      data.activityId = activityId
+    }
+    if (reminder !== undefined) {
+      data.reminder = reminder
+    }
+    if (reminderDays !== undefined) {
+      data.reminderDays = reminderDays
+    }
 
     const task = await prisma.task.update({
       where: { id },
-      data: {
-        title,
-        description,
-        completed,
-        dueDate: dueDate ? new Date(dueDate) : null,
-        priority,
-        ...(activityId && { activityId })
-      }
+      data: data as Parameters<typeof prisma.task.update>[0]['data']
     })
     return NextResponse.json(task)
   } catch (error) {
-    console.error('Task update error:', error)
     return NextResponse.json({ error: 'Failed to update task' }, { status: 500 })
   }
 }

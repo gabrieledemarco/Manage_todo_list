@@ -20,16 +20,40 @@ export interface Category {
   activities?: Activity[]
 }
 
+export interface ActivityDependency {
+  id: string
+  activityId: string
+  prerequisiteId: string
+  prerequisite?: {
+    id: string
+    name: string
+    status: string
+  }
+}
+
 export interface Activity {
   id: string
   name: string
   description?: string | null
   status: 'todo' | 'in_progress' | 'done'
+  startedAt?: string | null
   categoryId: string
   category?: Category
   createdAt: string
   updatedAt: string
   tasks?: Task[]
+  dependsOn?: ActivityDependency[]
+}
+
+export interface TaskDependency {
+  id: string
+  taskId: string
+  prerequisiteId: string
+  prerequisite?: {
+    id: string
+    title: string
+    completed: boolean
+  }
 }
 
 export interface Task {
@@ -39,10 +63,13 @@ export interface Task {
   completed: boolean
   dueDate?: string | null
   priority: 'low' | 'medium' | 'high'
+  reminder: boolean
+  reminderDays: number
   activityId: string
   activity?: Activity
   createdAt: string
   updatedAt: string
+  dependsOn?: TaskDependency[]
 }
 
 export interface Stats {
@@ -60,7 +87,7 @@ export interface Stats {
     medium: number
     low: number
   }
-  activitiesByStatus: {
+  tasksByStatus: {
     todo: number
     in_progress: number
     done: number

@@ -10,7 +10,14 @@ export async function GET() {
             project: true
           }
         },
-        tasks: true
+        tasks: true,
+        dependsOn: {
+          include: {
+            prerequisite: {
+              select: { id: true, name: true, status: true }
+            }
+          }
+        }
       },
       orderBy: { createdAt: 'desc' }
     })
@@ -24,9 +31,16 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
     const { name, description, status, categoryId } = body
-    
+
+    const data: Record<string, unknown> = { name, description, status, categoryId }
+
+    // Auto-set startedAt when status is in_progress
+    if (status === 'in_progress') {
+      data.startedAt = new Date()
+    }
+
     const activity = await prisma.activity.create({
-      data: { name, description, status, categoryId }
+      data: data as Parameters<typeof prisma.activity.create>[0]['data']
     })
     return NextResponse.json(activity, { status: 201 })
   } catch (error) {

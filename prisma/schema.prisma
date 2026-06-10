@@ -38,22 +38,47 @@ model Activity {
   name        String
   description String?
   status      String      @default("todo") // todo, in_progress, done
+  startedAt   DateTime?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   categoryId  String
   category    Category    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   tasks       Task[]
+  dependsOn   ActivityDependency[] @relation("ActivityDependent")
+  isPrerequisiteFor ActivityDependency[] @relation("ActivityPrerequisite")
 }
 
 model Task {
-  id          String      @id @default(uuid())
-  title       String
-  description String?
-  completed   Boolean     @default(false)
-  dueDate     DateTime?
-  priority    String      @default("medium") // low, medium, high
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  activityId  String
-  activity    Activity    @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  id           String      @id @default(uuid())
+  title        String
+  description  String?
+  completed    Boolean     @default(false)
+  dueDate      DateTime?
+  priority     String      @default("medium") // low, medium, high
+  reminder     Boolean     @default(false)
+  reminderDays Int         @default(1)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  activityId   String
+  activity     Activity    @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  dependsOn    TaskDependency[] @relation("TaskDependent")
+  isPrerequisiteFor TaskDependency[] @relation("TaskPrerequisite")
+}
+
+model ActivityDependency {
+  id             String   @id @default(uuid())
+  activityId     String
+  prerequisiteId String
+  activity       Activity @relation("ActivityDependent", fields: [activityId], references: [id], onDelete: Cascade)
+  prerequisite   Activity @relation("ActivityPrerequisite", fields: [prerequisiteId], references: [id], onDelete: Cascade)
+  @@unique([activityId, prerequisiteId])
+}
+
+model TaskDependency {
+  id             String @id @default(uuid())
+  taskId         String
+  prerequisiteId String
+  task           Task   @relation("TaskDependent", fields: [taskId], references: [id], onDelete: Cascade)
+  prerequisite   Task   @relation("TaskPrerequisite", fields: [prerequisiteId], references: [id], onDelete: Cascade)
+  @@unique([taskId, prerequisiteId])
 }

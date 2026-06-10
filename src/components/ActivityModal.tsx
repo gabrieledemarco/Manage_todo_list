@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X } from 'lucide-react'
-import { Activity, Category } from '@/lib/types'
+import { X, Plus } from 'lucide-react'
+import { Activity, Category, ActivityDependency } from '@/lib/types'
 
 interface ActivityModalProps {
   isOpen: boolean
@@ -11,14 +11,21 @@ interface ActivityModalProps {
   activity?: Activity | null
   categoryId: string
   categories: Category[]
+  projectId?: string
 }
 
-export default function ActivityModal({ isOpen, onClose, onSave, activity, categoryId, categories }: ActivityModalProps) {
+export default function ActivityModal({ isOpen, onClose, onSave, activity, categoryId, categories, projectId }: ActivityModalProps) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [status, setStatus] = useState<'todo' | 'in_progress' | 'done'>('todo')
   const [selectedCategoryId, setSelectedCategoryId] = useState(categoryId)
   const [loading, setLoading] = useState(false)
+
+  // Dependencies state
+  const [dependencies, setDependencies] = useState<ActivityDependency[]>([])
+  const [availableActivities, setAvailableActivities] = useState<Activity[]>([])
+  const [selectedPrereqId, setSelectedPrereqId] = useState('')
+  const [depsLoading, setDepsLoading] = useState(false)
 
   useEffect(() => {
     if (activity) {
@@ -26,13 +33,73 @@ export default function ActivityModal({ isOpen, onClose, onSave, activity, categ
       setDescription(activity.description || '')
       setStatus(activity.status as 'todo' | 'in_progress' | 'done')
       setSelectedCategoryId(activity.categoryId)
+      setDependencies(activity.dependsOn || [])
     } else {
       setName('')
       setDescription('')
       setStatus('todo')
       setSelectedCategoryId(categoryId)
+      setDependencies([])
     }
+    setSelectedPrereqId('')
   }, [activity, isOpen, categoryId])
+
+  useEffect(() => {
+    if (isOpen && projectId) {
+      fetchProjectActivities()
+    }
+  }, [isOpen, projectId])
+
+  const fetchProjectActivities = async () => {
+    if (!projectId) return
+    try {
+      const res = await fetch('/api/activities')
+      if (res.ok) {
+        const data: Activity[] = await res.json()
+        // Filter to activities in the same project, exclude current activity
+        const filtered = data.filter(a =>
+          a.category?.project?.id === projectId &&
+          a.id !== activity?.id
+        )
+        setAvailableActivities(filtered)
+      }
+    } catch (error) {
+      console.error('Error fetching activities:', error)
+    }
+  }
+
+  const handleAddDependency = async () => {
+    if (!selectedPrereqId || !activity) return
+    setDepsLoading(true)
+    try {
+      const res = await fetch(`/api/activities/${activity.id}/dependencies`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prerequisiteId: selectedPrereqId })
+      })
+      if (res.ok) {
+        const dep = await res.json()
+        setDependencies(prev => [...prev, dep])
+        setSelectedPrereqId('')
+      }
+    } catch (error) {
+      console.error('Error adding dependency:', error)
+    } finally {
+      setDepsLoading(false)
+    }
+  }
+
+  const handleRemoveDependency = async (prereqId: string) => {
+    if (!activity) return
+    try {
+      await fetch(`/api/activities/${activity.id}/dependencies/${prereqId}`, {
+        method: 'DELETE'
+      })
+      setDependencies(prev => prev.filter(d => d.prerequisiteId !== prereqId))
+    } catch (error) {
+      console.error('Error removing dependency:', error)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -60,106 +127,102 @@ export default function ActivityModal({ isOpen, onClose, onSave, activity, categ
     }
   }
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('it-IT', {
+      day: 'numeric', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    })
+  }
+
   if (!isOpen) return null
 
-  const statusOptions = [
-    { value: 'todo', label: 'Da fare', activeBg: 'rgba(255,255,255,0.12)', activeColor: 'var(--text-primary)' },
-    { value: 'in_progress', label: 'In corso', activeBg: 'rgba(245,158,11,0.15)', activeColor: '#f59e0b' },
-    { value: 'done', label: 'Completato', activeBg: 'rgba(16,185,129,0.15)', activeColor: '#10b981' }
-  ]
+  // Activities not already in dependencies and not current activity
+  const prereqsAlreadyAdded = new Set(dependencies.map(d => d.prerequisiteId))
+  const availableForAdd = availableActivities.filter(a => !prereqsAlreadyAdded.has(a.id))
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50"
-      style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(12px)' }}>
-      <div className="rounded-2xl shadow-2xl w-full max-w-md animate-slide-in"
-        style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-strong)' }}>
-        <div className="flex items-center justify-between px-6 py-5" style={{ borderBottom: '1px solid var(--border)' }}>
-          <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md border border-slate-700 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b border-slate-700 sticky top-0 bg-slate-800 z-10">
+          <h2 className="text-xl font-semibold text-white">
             {activity ? 'Modifica Attività' : 'Nuova Attività'}
           </h2>
-          <button onClick={onClose}
-            className="p-1.5 rounded-lg transition-colors"
-            style={{ color: 'var(--text-tertiary)' }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.08)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)' }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--text-tertiary)' }}
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
           >
-            <X size={18} />
+            <X size={20} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {!activity && (
-            <div>
-              <label className="block text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
-                Categoria
-              </label>
-              <select
-                value={selectedCategoryId}
-                onChange={(e) => setSelectedCategoryId(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
-                onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--accent)'}
-                onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'}
-              >
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id} style={{ background: '#0d0e24' }}>
-                    {cat.project?.name} / {cat.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Categoria
+            </label>
+            <select
+              value={selectedCategoryId}
+              onChange={(e) => setSelectedCategoryId(e.target.value)}
+              className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+            >
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.project?.name} / {cat.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
           <div>
-            <label className="block text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
               Nome attività
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
-              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--accent)'}
-              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'}
+              className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
               placeholder="Es. Implementazione API, UI Design"
               required
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
               Descrizione
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
-              className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none resize-none"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
-              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--accent)'}
-              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'}
+              className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all resize-none"
               placeholder="Breve descrizione..."
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
               Stato
             </label>
             <div className="grid grid-cols-3 gap-2">
-              {statusOptions.map((s) => (
+              {[
+                { value: 'todo', label: 'Da fare', color: 'slate' },
+                { value: 'in_progress', label: 'In corso', color: 'amber' },
+                { value: 'done', label: 'Completato', color: 'emerald' }
+              ].map((s) => (
                 <button
                   key={s.value}
                   type="button"
                   onClick={() => setStatus(s.value as typeof status)}
-                  className="px-3 py-2 rounded-xl text-xs font-medium transition-all"
-                  style={{
-                    background: status === s.value ? s.activeBg : 'rgba(255,255,255,0.04)',
-                    color: status === s.value ? s.activeColor : 'var(--text-tertiary)',
-                    border: `1px solid ${status === s.value ? 'currentColor' : 'var(--border)'}`,
-                    opacity: status === s.value ? 1 : 0.7
-                  }}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    status === s.value
+                      ? s.color === 'slate'
+                        ? 'bg-slate-600 text-white'
+                        : s.color === 'amber'
+                        ? 'bg-amber-600 text-white'
+                        : 'bg-emerald-600 text-white'
+                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  }`}
                 >
                   {s.label}
                 </button>
@@ -167,22 +230,88 @@ export default function ActivityModal({ isOpen, onClose, onSave, activity, categ
             </div>
           </div>
 
-          <div className="flex gap-3 pt-2">
+          {/* Show startedAt if activity exists and has it set */}
+          {activity?.startedAt && (
+            <div className="px-4 py-3 bg-slate-900/50 rounded-lg border border-slate-700">
+              <span className="text-xs text-slate-400">
+                Iniziata il: <span className="text-amber-400 font-medium">{formatDate(activity.startedAt)}</span>
+              </span>
+            </div>
+          )}
+
+          {/* Dependencies section - only when editing an existing activity with projectId */}
+          {activity && projectId && (
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                Propedeuticità
+              </label>
+              {/* Current dependencies as chips */}
+              {dependencies.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {dependencies.map((dep) => (
+                    <span
+                      key={dep.prerequisiteId}
+                      className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${
+                        dep.prerequisite?.status === 'done'
+                          ? 'bg-emerald-500/20 text-emerald-400'
+                          : 'bg-slate-700 text-slate-300'
+                      }`}
+                    >
+                      {dep.prerequisite?.name || dep.prerequisiteId}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveDependency(dep.prerequisiteId)}
+                        className="hover:text-red-400 transition-colors"
+                      >
+                        <X size={12} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {availableForAdd.length > 0 ? (
+                <div className="flex gap-2">
+                  <select
+                    value={selectedPrereqId}
+                    onChange={(e) => setSelectedPrereqId(e.target.value)}
+                    className="flex-1 px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                  >
+                    <option value="">Seleziona attività prerequisito...</option>
+                    {availableForAdd.map((a) => (
+                      <option key={a.id} value={a.id}>{a.name}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={handleAddDependency}
+                    disabled={!selectedPrereqId || depsLoading}
+                    className="flex items-center gap-1 px-3 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-500 disabled:opacity-50 transition-colors"
+                  >
+                    <Plus size={14} />
+                    Aggiungi
+                  </button>
+                </div>
+              ) : (
+                <p className="text-xs text-slate-500 py-2">
+                  {dependencies.length > 0 ? 'Tutte le attività del progetto sono già prerequisiti.' : 'Nessuna altra attività disponibile nel progetto.'}
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
-              style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
-              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.1)'}
-              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'}
+              className="flex-1 px-4 py-3 bg-slate-700 text-slate-300 rounded-lg font-medium hover:bg-slate-600 transition-colors"
             >
               Annulla
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white transition-all disabled:opacity-50"
-              style={{ background: 'linear-gradient(135deg, #06b6d4, #0ea5e9)' }}
+              className="flex-1 px-4 py-3 bg-cyan-600 text-white rounded-lg font-medium hover:bg-cyan-500 disabled:opacity-50 transition-colors"
             >
               {loading ? 'Salvataggio...' : activity ? 'Salva' : 'Crea'}
             </button>

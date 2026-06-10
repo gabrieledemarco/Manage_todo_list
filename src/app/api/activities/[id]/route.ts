@@ -15,7 +15,14 @@ export async function GET(
             project: true
           }
         },
-        tasks: true
+        tasks: true,
+        dependsOn: {
+          include: {
+            prerequisite: {
+              select: { id: true, name: true, status: true }
+            }
+          }
+        }
       }
     })
     if (!activity) {
@@ -34,11 +41,27 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
-    const { name, description, status } = body
-    
+    const { name, description, status, categoryId } = body
+
+    // Fetch current activity to check existing startedAt
+    const existing = await prisma.activity.findUnique({ where: { id } })
+    if (!existing) {
+      return NextResponse.json({ error: 'Activity not found' }, { status: 404 })
+    }
+
+    const data: Record<string, unknown> = { name, description, status }
+    if (categoryId) {
+      data.categoryId = categoryId
+    }
+
+    // Auto-set startedAt when status changes to in_progress and not already set
+    if (status === 'in_progress' && !existing.startedAt) {
+      data.startedAt = new Date()
+    }
+
     const activity = await prisma.activity.update({
       where: { id },
-      data: { name, description, status }
+      data: data as Parameters<typeof prisma.activity.update>[0]['data']
     })
     return NextResponse.json(activity)
   } catch (error) {

@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X } from 'lucide-react'
-import { Task, Activity } from '@/lib/types'
+import { X, Plus, Bell } from 'lucide-react'
+import { Task, Activity, TaskDependency } from '@/lib/types'
 
 interface TaskModalProps {
   isOpen: boolean
@@ -11,15 +11,24 @@ interface TaskModalProps {
   task?: Task | null
   activityId: string
   activities: Activity[]
+  projectId?: string
 }
 
-export default function TaskModal({ isOpen, onClose, onSave, task, activityId, activities }: TaskModalProps) {
+export default function TaskModal({ isOpen, onClose, onSave, task, activityId, activities, projectId }: TaskModalProps) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [dueDate, setDueDate] = useState('')
   const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium')
   const [selectedActivityId, setSelectedActivityId] = useState(activityId)
+  const [reminder, setReminder] = useState(false)
+  const [reminderDays, setReminderDays] = useState(1)
   const [loading, setLoading] = useState(false)
+
+  // Dependencies state
+  const [dependencies, setDependencies] = useState<TaskDependency[]>([])
+  const [availableTasks, setAvailableTasks] = useState<Task[]>([])
+  const [selectedPrereqId, setSelectedPrereqId] = useState('')
+  const [depsLoading, setDepsLoading] = useState(false)
 
   useEffect(() => {
     if (task) {
@@ -28,14 +37,78 @@ export default function TaskModal({ isOpen, onClose, onSave, task, activityId, a
       setDueDate(task.dueDate ? task.dueDate.split('T')[0] : '')
       setPriority(task.priority as 'low' | 'medium' | 'high')
       setSelectedActivityId(task.activityId)
+      setReminder(task.reminder ?? false)
+      setReminderDays(task.reminderDays ?? 1)
+      setDependencies(task.dependsOn || [])
     } else {
       setTitle('')
       setDescription('')
       setDueDate('')
       setPriority('medium')
       setSelectedActivityId(activityId)
+      setReminder(false)
+      setReminderDays(1)
+      setDependencies([])
     }
+    setSelectedPrereqId('')
   }, [task, isOpen, activityId])
+
+  useEffect(() => {
+    if (isOpen && projectId) {
+      fetchProjectTasks()
+    }
+  }, [isOpen, projectId])
+
+  const fetchProjectTasks = async () => {
+    if (!projectId) return
+    try {
+      const res = await fetch('/api/tasks')
+      if (res.ok) {
+        const data: Task[] = await res.json()
+        // Filter tasks in the same project, exclude current task
+        const filtered = data.filter(t =>
+          t.activity?.category?.project?.id === projectId &&
+          t.id !== task?.id
+        )
+        setAvailableTasks(filtered)
+      }
+    } catch (error) {
+      console.error('Error fetching tasks:', error)
+    }
+  }
+
+  const handleAddDependency = async () => {
+    if (!selectedPrereqId || !task) return
+    setDepsLoading(true)
+    try {
+      const res = await fetch(`/api/tasks/${task.id}/dependencies`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prerequisiteId: selectedPrereqId })
+      })
+      if (res.ok) {
+        const dep = await res.json()
+        setDependencies(prev => [...prev, dep])
+        setSelectedPrereqId('')
+      }
+    } catch (error) {
+      console.error('Error adding dependency:', error)
+    } finally {
+      setDepsLoading(false)
+    }
+  }
+
+  const handleRemoveDependency = async (prereqId: string) => {
+    if (!task) return
+    try {
+      await fetch(`/api/tasks/${task.id}/dependencies/${prereqId}`, {
+        method: 'DELETE'
+      })
+      setDependencies(prev => prev.filter(d => d.prerequisiteId !== prereqId))
+    } catch (error) {
+      console.error('Error removing dependency:', error)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -54,7 +127,9 @@ export default function TaskModal({ isOpen, onClose, onSave, task, activityId, a
           description,
           dueDate: dueDate || null,
           priority,
-          activityId: selectedActivityId
+          activityId: selectedActivityId,
+          reminder,
+          reminderDays
         })
       })
 
@@ -71,141 +146,209 @@ export default function TaskModal({ isOpen, onClose, onSave, task, activityId, a
 
   if (!isOpen) return null
 
-  const priorityOptions = [
-    { value: 'low', label: 'Bassa', activeBg: 'rgba(16,185,129,0.15)', activeColor: '#10b981' },
-    { value: 'medium', label: 'Media', activeBg: 'rgba(245,158,11,0.15)', activeColor: '#f59e0b' },
-    { value: 'high', label: 'Alta', activeBg: 'rgba(239,68,68,0.15)', activeColor: '#ef4444' }
-  ]
+  // Tasks not already in dependencies and not current task
+  const prereqsAlreadyAdded = new Set(dependencies.map(d => d.prerequisiteId))
+  const availableForAdd = availableTasks.filter(t => !prereqsAlreadyAdded.has(t.id))
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50"
-      style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(12px)' }}>
-      <div className="rounded-2xl shadow-2xl w-full max-w-md animate-slide-in"
-        style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-strong)' }}>
-        <div className="flex items-center justify-between px-6 py-5" style={{ borderBottom: '1px solid var(--border)' }}>
-          <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md border border-slate-700 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b border-slate-700 sticky top-0 bg-slate-800 z-10">
+          <h2 className="text-xl font-semibold text-white">
             {task ? 'Modifica Task' : 'Nuovo Task'}
           </h2>
-          <button onClick={onClose}
-            className="p-1.5 rounded-lg transition-colors"
-            style={{ color: 'var(--text-tertiary)' }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.08)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)' }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--text-tertiary)' }}
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
           >
-            <X size={18} />
+            <X size={20} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {!task && (
-            <div>
-              <label className="block text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
-                Attività
-              </label>
-              <select
-                value={selectedActivityId}
-                onChange={(e) => setSelectedActivityId(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
-                onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--accent)'}
-                onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'}
-              >
-                {activities.map((act) => (
-                  <option key={act.id} value={act.id} style={{ background: '#0d0e24' }}>
-                    {act.category?.project?.name} / {act.category?.name} / {act.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Attività
+            </label>
+            <select
+              value={selectedActivityId}
+              onChange={(e) => setSelectedActivityId(e.target.value)}
+              className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+            >
+              {activities.map((act) => (
+                <option key={act.id} value={act.id}>
+                  {act.category?.project?.name} / {act.category?.name} / {act.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
           <div>
-            <label className="block text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
               Titolo task
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
-              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--accent)'}
-              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'}
+              className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
               placeholder="Es. Creare form di contatto"
               required
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
               Descrizione
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
-              className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none resize-none"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
-              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--accent)'}
-              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'}
+              className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all resize-none"
               placeholder="Dettagli del task..."
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
-              Data scadenza
-            </label>
-            <input
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', color: 'var(--text-primary)', colorScheme: 'dark' }}
-              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--accent)'}
-              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'}
-            />
-          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                Data scadenza
+              </label>
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+              />
+            </div>
 
-          <div>
-            <label className="block text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
-              Priorità
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {priorityOptions.map((p) => (
-                <button
-                  key={p.value}
-                  type="button"
-                  onClick={() => setPriority(p.value as typeof priority)}
-                  className="px-3 py-2 rounded-xl text-xs font-medium transition-all"
-                  style={{
-                    background: priority === p.value ? p.activeBg : 'rgba(255,255,255,0.04)',
-                    color: priority === p.value ? p.activeColor : 'var(--text-tertiary)',
-                    border: `1px solid ${priority === p.value ? p.activeColor + '40' : 'var(--border)'}`,
-                  }}
-                >
-                  {p.label}
-                </button>
-              ))}
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                Priorità
+              </label>
+              <select
+                value={priority}
+                onChange={(e) => setPriority(e.target.value as 'low' | 'medium' | 'high')}
+                className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+              >
+                <option value="low">Bassa</option>
+                <option value="medium">Media</option>
+                <option value="high">Alta</option>
+              </select>
             </div>
           </div>
 
-          <div className="flex gap-3 pt-2">
+          {/* Reminder section */}
+          <div className="border border-slate-700 rounded-lg p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Bell size={16} className={reminder ? 'text-amber-400' : 'text-slate-400'} />
+                <span className="text-sm font-medium text-slate-300">Promemoria</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReminder(!reminder)}
+                className={`relative w-11 h-6 rounded-full transition-colors ${
+                  reminder ? 'bg-amber-500' : 'bg-slate-600'
+                }`}
+              >
+                <span
+                  className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                    reminder ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+            {reminder && (
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-slate-400">Ricordami</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={30}
+                  value={reminderDays}
+                  onChange={(e) => setReminderDays(Math.max(1, Math.min(30, parseInt(e.target.value) || 1)))}
+                  className="w-16 px-2 py-1 bg-slate-900 border border-slate-600 rounded-lg text-white text-sm text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                />
+                <span className="text-sm text-slate-400">giorni prima della scadenza</span>
+              </div>
+            )}
+          </div>
+
+          {/* Dependencies section - only when editing an existing task with projectId */}
+          {task && projectId && (
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                Propedeuticità
+              </label>
+              {/* Current dependencies as chips */}
+              {dependencies.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {dependencies.map((dep) => (
+                    <span
+                      key={dep.prerequisiteId}
+                      className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${
+                        dep.prerequisite?.completed
+                          ? 'bg-emerald-500/20 text-emerald-400'
+                          : 'bg-slate-700 text-slate-300'
+                      }`}
+                    >
+                      {dep.prerequisite?.title || dep.prerequisiteId}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveDependency(dep.prerequisiteId)}
+                        className="hover:text-red-400 transition-colors"
+                      >
+                        <X size={12} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {availableForAdd.length > 0 ? (
+                <div className="flex gap-2">
+                  <select
+                    value={selectedPrereqId}
+                    onChange={(e) => setSelectedPrereqId(e.target.value)}
+                    className="flex-1 px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                  >
+                    <option value="">Seleziona task prerequisito...</option>
+                    {availableForAdd.map((t) => (
+                      <option key={t.id} value={t.id}>{t.title}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={handleAddDependency}
+                    disabled={!selectedPrereqId || depsLoading}
+                    className="flex items-center gap-1 px-3 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-500 disabled:opacity-50 transition-colors"
+                  >
+                    <Plus size={14} />
+                    Aggiungi
+                  </button>
+                </div>
+              ) : (
+                <p className="text-xs text-slate-500 py-2">
+                  {dependencies.length > 0 ? 'Tutti i task del progetto sono già prerequisiti.' : 'Nessun altro task disponibile nel progetto.'}
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
-              style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
-              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.1)'}
-              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'}
+              className="flex-1 px-4 py-3 bg-slate-700 text-slate-300 rounded-lg font-medium hover:bg-slate-600 transition-colors"
             >
               Annulla
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white transition-all disabled:opacity-50"
-              style={{ background: 'linear-gradient(135deg, #8b5cf6, #a78bfa)' }}
+              className="flex-1 px-4 py-3 bg-violet-600 text-white rounded-lg font-medium hover:bg-violet-500 disabled:opacity-50 transition-colors"
             >
               {loading ? 'Salvataggio...' : task ? 'Salva' : 'Crea'}
             </button>
