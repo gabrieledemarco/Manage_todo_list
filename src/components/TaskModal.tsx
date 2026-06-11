@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Plus, Bell } from 'lucide-react'
+import { X, Plus, Bell, ListOrdered } from 'lucide-react'
 import { Task, Activity, TaskDependency } from '@/lib/types'
 import { DocPathInput } from './DocPath'
 
@@ -23,6 +23,7 @@ export default function TaskModal({ isOpen, onClose, onSave, task, activityId, a
   const [selectedActivityId, setSelectedActivityId] = useState(activityId)
   const [reminder, setReminder] = useState(false)
   const [reminderDays, setReminderDays] = useState(1)
+  const [sequenceOrder, setSequenceOrder] = useState<number | null>(null)
   const [docPath, setDocPath] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -43,6 +44,7 @@ export default function TaskModal({ isOpen, onClose, onSave, task, activityId, a
       setReminderDays(task.reminderDays ?? 1)
       setDependencies(task.dependsOn || [])
       setDocPath(task.docPath || '')
+      setSequenceOrder(task.sequenceOrder ?? null)
     } else {
       setTitle('')
       setDescription('')
@@ -53,6 +55,7 @@ export default function TaskModal({ isOpen, onClose, onSave, task, activityId, a
       setReminderDays(1)
       setDependencies([])
       setDocPath('')
+      setSequenceOrder(null)
     }
     setSelectedPrereqId('')
   }, [task, isOpen, activityId])
@@ -134,7 +137,8 @@ export default function TaskModal({ isOpen, onClose, onSave, task, activityId, a
           activityId: selectedActivityId,
           reminder,
           reminderDays,
-          docPath: docPath || null
+          docPath: docPath || null,
+          sequenceOrder
         })
       })
 
@@ -156,9 +160,10 @@ export default function TaskModal({ isOpen, onClose, onSave, task, activityId, a
   const availableForAdd = availableTasks.filter(t => !prereqsAlreadyAdded.has(t.id))
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md border border-slate-700 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-slate-700 sticky top-0 bg-slate-800 z-10">
+    <div className="fixed inset-0 overflow-y-auto z-50 bg-black/60 backdrop-blur-sm">
+      <div className="min-h-full flex items-center justify-center p-4 sm:p-8">
+      <div className="w-full max-w-md bg-slate-800 rounded-2xl shadow-2xl border border-slate-700">
+        <div className="flex items-center justify-between p-6 border-b border-slate-700">
           <h2 className="text-xl font-semibold text-white">
             {task ? 'Modifica Task' : 'Nuovo Task'}
           </h2>
@@ -283,6 +288,37 @@ export default function TaskModal({ isOpen, onClose, onSave, task, activityId, a
             )}
           </div>
 
+          {/* Sequential order section */}
+          <div className="border border-slate-700 rounded-lg p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ListOrdered size={16} className={sequenceOrder !== null ? 'text-indigo-400' : 'text-slate-400'} />
+                <span className="text-sm font-medium text-slate-300">Ordine sequenziale</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSequenceOrder(prev => prev !== null ? null : 1)}
+                className={`relative w-11 h-6 rounded-full transition-colors ${sequenceOrder !== null ? 'bg-indigo-500' : 'bg-slate-600'}`}
+              >
+                <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${sequenceOrder !== null ? 'translate-x-5' : 'translate-x-0'}`} />
+              </button>
+            </div>
+            {sequenceOrder !== null && (
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-slate-400">Step</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={99}
+                  value={sequenceOrder}
+                  onChange={(e) => setSequenceOrder(Math.max(1, Math.min(99, parseInt(e.target.value) || 1)))}
+                  className="w-16 px-2 py-1 bg-slate-900 border border-slate-600 rounded-lg text-white text-sm text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                />
+                <span className="text-sm text-slate-400">nell'ordine di questa attività</span>
+              </div>
+            )}
+          </div>
+
           {/* Dependencies section - only when editing an existing task with projectId */}
           {task && projectId && (
             <div>
@@ -361,6 +397,7 @@ export default function TaskModal({ isOpen, onClose, onSave, task, activityId, a
             </button>
           </div>
         </form>
+      </div>
       </div>
     </div>
   )

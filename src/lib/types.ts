@@ -71,6 +71,7 @@ export interface Task {
   priority: 'low' | 'medium' | 'high'
   reminder: boolean
   reminderDays: number
+  sequenceOrder?: number | null
   docPath?: string | null
   activityId: string
   activity?: Activity

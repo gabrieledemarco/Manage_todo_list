@@ -18,12 +18,11 @@ export async function GET(
                   include: {
                     dependsOn: {
                       include: {
-                        prerequisite: {
-                          select: { id: true, title: true, completed: true }
-                        }
+                        prerequisite: { select: { id: true, title: true, completed: true } }
                       }
                     }
-                  }
+                  },
+                  orderBy: [{ sequenceOrder: 'asc' }, { createdAt: 'asc' }]
                 },
                 dependsOn: {
                   include: {

@@ -145,9 +145,10 @@ export default function ActivityModal({ isOpen, onClose, onSave, activity, categ
   const availableForAdd = availableActivities.filter(a => !prereqsAlreadyAdded.has(a.id))
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md border border-slate-700 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-slate-700 sticky top-0 bg-slate-800 z-10">
+    <div className="fixed inset-0 overflow-y-auto z-50 bg-black/60 backdrop-blur-sm">
+      <div className="min-h-full flex items-center justify-center p-4 sm:p-8">
+      <div className="w-full max-w-md bg-slate-800 rounded-2xl shadow-2xl border border-slate-700">
+        <div className="flex items-center justify-between p-6 border-b border-slate-700">
           <h2 className="text-xl font-semibold text-white">
             {activity ? 'Modifica Attività' : 'Nuova Attività'}
           </h2>
@@ -323,6 +324,7 @@ export default function ActivityModal({ isOpen, onClose, onSave, activity, categ
             </button>
           </div>
         </form>
+      </div>
       </div>
     </div>
   )
