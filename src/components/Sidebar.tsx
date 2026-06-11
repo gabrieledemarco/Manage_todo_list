@@ -9,7 +9,8 @@ import {
   BarChart3,
   Plus,
   ChevronRight,
-  FolderOpen
+  FolderOpen,
+  FileText
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { Project } from '@/lib/types'
@@ -19,6 +20,7 @@ const navItems = [
   { href: '/projects', label: 'Progetti', icon: FolderKanban },
   { href: '/calendar', label: 'Calendario', icon: Calendar },
   { href: '/dashboard', label: 'Statistiche', icon: BarChart3 },
+  { href: '/report', label: 'Report', icon: FileText },
 ]
 
 function LiveClock() {
