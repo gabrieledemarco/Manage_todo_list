@@ -23,10 +23,10 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { name, description, color, projectId } = body
-    
+    const { name, description, color, projectId, docPath } = body
+
     const category = await prisma.category.create({
-      data: { name, description, color, projectId }
+      data: { name, description, color, projectId, docPath: docPath || null }
     })
     return NextResponse.json(category, { status: 201 })
   } catch (error) {

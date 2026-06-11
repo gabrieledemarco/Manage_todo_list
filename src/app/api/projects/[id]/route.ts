@@ -54,7 +54,7 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
-    const { name, description, color, parentId } = body
+    const { name, description, color, parentId, docPath } = body
 
     if (parentId === id) {
       return NextResponse.json({ error: 'A project cannot be its own parent' }, { status: 400 })
@@ -62,7 +62,7 @@ export async function PUT(
 
     const project = await prisma.project.update({
       where: { id },
-      data: { name, description, color, parentId: parentId ?? null }
+      data: { name, description, color, parentId: parentId ?? null, docPath: docPath ?? null }
     })
     return NextResponse.json(project)
   } catch (error) {

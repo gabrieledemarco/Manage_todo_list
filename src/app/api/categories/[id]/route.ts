@@ -34,9 +34,9 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
-    const { name, description, color, projectId } = body
+    const { name, description, color, projectId, docPath } = body
 
-    const data: Record<string, unknown> = { name, description, color }
+    const data: Record<string, unknown> = { name, description, color, docPath: docPath ?? null }
     if (projectId) {
       data.projectId = projectId
     }

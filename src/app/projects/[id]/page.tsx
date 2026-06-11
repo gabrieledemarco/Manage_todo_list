@@ -20,6 +20,7 @@ import {
   Lock
 } from 'lucide-react'
 import { Project, Category, Activity, Task } from '@/lib/types'
+import { DocPathBadge } from '@/components/DocPath'
 import CategoryModal from '@/components/CategoryModal'
 import ActivityModal from '@/components/ActivityModal'
 import TaskModal from '@/components/TaskModal'
@@ -228,6 +229,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             {project.description && (
               <p className="text-slate-400 text-sm">{project.description}</p>
             )}
+            {project.docPath && <DocPathBadge path={project.docPath} />}
           </div>
         </div>
         <button
@@ -276,10 +278,13 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 >
                   <Folder size={16} style={{ color: category.color }} />
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <span className="font-semibold text-white">{category.name}</span>
                   {category.description && (
                     <span className="text-slate-400 text-sm ml-2">• {category.description}</span>
+                  )}
+                  {category.docPath && (
+                    <div className="mt-1.5"><DocPathBadge path={category.docPath} /></div>
                   )}
                 </div>
                 <div className="flex items-center gap-4">
@@ -420,6 +425,12 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                             </button>
                           </div>
 
+                          {activity.docPath && (
+                            <div className="px-3 pb-2">
+                              <DocPathBadge path={activity.docPath} />
+                            </div>
+                          )}
+
                           {expandedActivities.has(activity.id) && (
                             <div className="px-4 pb-4 space-y-2">
                               {(!activity.tasks || activity.tasks.length === 0) ? (
@@ -431,10 +442,11 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                   return (
                                     <div
                                       key={task.id}
-                                      className={`flex items-center gap-3 p-2.5 rounded-lg bg-slate-800/50 ${
+                                      className={`rounded-lg bg-slate-800/50 ${
                                         task.completed ? 'opacity-60' : ''
                                       } ${isOverdue(task) ? 'ring-1 ring-red-500/30' : ''}`}
                                     >
+                                      <div className="flex items-center gap-3 p-2.5">
                                       <button
                                         onClick={() => handleToggleTask(task)}
                                         className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
@@ -488,6 +500,12 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                       >
                                         <Trash2 size={12} />
                                       </button>
+                                      </div>
+                                      {task.docPath && (
+                                        <div className="px-2.5 pb-2">
+                                          <DocPathBadge path={task.docPath} />
+                                        </div>
+                                      )}
                                     </div>
                                   )
                                 })

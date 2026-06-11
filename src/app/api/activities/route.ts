@@ -30,9 +30,9 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { name, description, status, categoryId } = body
+    const { name, description, status, categoryId, docPath } = body
 
-    const data: Record<string, unknown> = { name, description, status, categoryId }
+    const data: Record<string, unknown> = { name, description, status, categoryId, docPath: docPath || null }
 
     // Auto-set startedAt when status is in_progress
     if (status === 'in_progress') {

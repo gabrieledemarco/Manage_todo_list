@@ -41,7 +41,7 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
-    const { name, description, status, categoryId } = body
+    const { name, description, status, categoryId, docPath } = body
 
     // Fetch current activity to check existing startedAt
     const existing = await prisma.activity.findUnique({ where: { id } })
@@ -49,7 +49,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Activity not found' }, { status: 404 })
     }
 
-    const data: Record<string, unknown> = { name, description, status }
+    const data: Record<string, unknown> = { name, description, status, docPath: docPath ?? null }
     if (categoryId) {
       data.categoryId = categoryId
     }

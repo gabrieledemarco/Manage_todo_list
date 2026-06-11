@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { X, Plus } from 'lucide-react'
 import { Activity, Category, ActivityDependency } from '@/lib/types'
+import { DocPathInput } from './DocPath'
 
 interface ActivityModalProps {
   isOpen: boolean
@@ -19,6 +20,7 @@ export default function ActivityModal({ isOpen, onClose, onSave, activity, categ
   const [description, setDescription] = useState('')
   const [status, setStatus] = useState<'todo' | 'in_progress' | 'done'>('todo')
   const [selectedCategoryId, setSelectedCategoryId] = useState(categoryId)
+  const [docPath, setDocPath] = useState('')
   const [loading, setLoading] = useState(false)
 
   // Dependencies state
@@ -34,12 +36,14 @@ export default function ActivityModal({ isOpen, onClose, onSave, activity, categ
       setStatus(activity.status as 'todo' | 'in_progress' | 'done')
       setSelectedCategoryId(activity.categoryId)
       setDependencies(activity.dependsOn || [])
+      setDocPath(activity.docPath || '')
     } else {
       setName('')
       setDescription('')
       setStatus('todo')
       setSelectedCategoryId(categoryId)
       setDependencies([])
+      setDocPath('')
     }
     setSelectedPrereqId('')
   }, [activity, isOpen, categoryId])
@@ -113,7 +117,7 @@ export default function ActivityModal({ isOpen, onClose, onSave, activity, categ
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, description, status, categoryId: selectedCategoryId })
+        body: JSON.stringify({ name, description, status, categoryId: selectedCategoryId, docPath: docPath || null })
       })
 
       if (res.ok) {
@@ -195,10 +199,12 @@ export default function ActivityModal({ isOpen, onClose, onSave, activity, categ
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
-              className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all resize-none"
+              className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all resize-y min-h-[80px]"
               placeholder="Breve descrizione..."
             />
           </div>
+
+          <DocPathInput value={docPath} onChange={setDocPath} />
 
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">

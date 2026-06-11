@@ -4,6 +4,7 @@ export interface Project {
   description?: string | null
   color: string
   parentId?: string | null
+  docPath?: string | null
   parent?: Project | null
   children?: Project[]
   createdAt: string
@@ -16,6 +17,7 @@ export interface Category {
   name: string
   description?: string | null
   color: string
+  docPath?: string | null
   projectId: string
   project?: Project
   createdAt: string
@@ -40,6 +42,7 @@ export interface Activity {
   description?: string | null
   status: 'todo' | 'in_progress' | 'done'
   startedAt?: string | null
+  docPath?: string | null
   categoryId: string
   category?: Category
   createdAt: string
@@ -68,6 +71,7 @@ export interface Task {
   priority: 'low' | 'medium' | 'high'
   reminder: boolean
   reminderDays: number
+  docPath?: string | null
   activityId: string
   activity?: Activity
   createdAt: string
