@@ -58,7 +58,7 @@ jobs:
           BUNDLE="taskflow-windows-v${VERSION}"
           DEST="dist/${BUNDLE}"
 
-          mkdir -p "${DEST}/node" "${DEST}/prisma" "${DEST}/data"
+          mkdir -p "${DEST}/node" "${DEST}/prisma"
 
           # Standalone server + all required node_modules
           cp -r .next/standalone/. "${DEST}/"
@@ -116,6 +116,9 @@ jobs:
 
             ### Novità v0.4.0
             - **Aggiornamento sicuro — dati preservati** — l'installer rileva una versione precedente e preserva automaticamente il database esistente; le migrazioni dello schema vengono applicate ad ogni avvio tramite `prisma migrate deploy`
+            - **Fix perdita dati su re-estrazione** — la cartella `data/` non è più inclusa nel bundle ZIP, eliminando il rischio che strumenti di estrazione cancellino il `taskflow.db` esistente
+            - **Form modal a piena altezza** — i modali di creazione/modifica non vengono più tagliati nella parte inferiore
+            - **Ordine sequenziale task** — ogni task può avere un numero di step opzionale; i task con step più alto sono bloccati finché i precedenti non sono completati
             - **Gerarchia progetti** — un progetto può essere annidato all'interno di un altro progetto (padre/figlio)
             - **Report settimanale** — pagina dedicata con riepilogo attività/task completati, in corso e da fare per la presentazione al team
             - **Percorso documentazione** — campo opzionale su ogni Progetto/Categoria/Attività/Task per collegare la documentazione locale
