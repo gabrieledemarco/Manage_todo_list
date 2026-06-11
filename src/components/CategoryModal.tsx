@@ -75,8 +75,9 @@ export default function CategoryModal({ isOpen, onClose, onSave, category, proje
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md border border-slate-700">
+    <div className="fixed inset-0 overflow-y-auto z-50 bg-black/60 backdrop-blur-sm">
+      <div className="min-h-full flex items-center justify-center p-4 sm:p-8">
+      <div className="w-full max-w-md bg-slate-800 rounded-2xl shadow-2xl border border-slate-700">
         <div className="flex items-center justify-between p-6 border-b border-slate-700">
           <h2 className="text-xl font-semibold text-white">
             {category ? 'Modifica Categoria' : 'Nuova Categoria'}
@@ -170,6 +171,7 @@ export default function CategoryModal({ isOpen, onClose, onSave, category, proje
             </button>
           </div>
         </form>
+      </div>
       </div>
     </div>
   )

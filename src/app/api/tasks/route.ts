@@ -31,7 +31,7 @@ export async function GET(request: Request) {
           }
         }
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: [{ createdAt: 'desc' }]
     })
     return NextResponse.json(tasks)
   } catch (error) {
@@ -42,7 +42,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { title, description, completed, dueDate, priority, activityId, reminder, reminderDays, docPath } = body
+    const { title, description, completed, dueDate, priority, activityId, reminder, reminderDays, docPath, sequenceOrder } = body
 
     const task = await prisma.task.create({
       data: {
@@ -54,7 +54,8 @@ export async function POST(request: Request) {
         activityId,
         reminder: reminder ?? false,
         reminderDays: reminderDays ?? 1,
-        docPath: docPath || null
+        docPath: docPath || null,
+        sequenceOrder: sequenceOrder !== undefined ? sequenceOrder : null
       }
     })
     return NextResponse.json(task, { status: 201 })

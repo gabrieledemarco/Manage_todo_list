@@ -99,8 +99,8 @@ export default function ProjectModal({ isOpen, onClose, onSave, project, allProj
   }
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50"
-      style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(12px)' }}>
+    <div className="fixed inset-0 overflow-y-auto z-50" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(12px)' }}>
+      <div className="min-h-full flex items-center justify-center p-4 sm:p-8">
       <div className="rounded-2xl shadow-2xl w-full max-w-md animate-slide-in"
         style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-strong)' }}>
         <div className="flex items-center justify-between px-6 py-5" style={{ borderBottom: '1px solid var(--border)' }}>
@@ -216,6 +216,7 @@ export default function ProjectModal({ isOpen, onClose, onSave, project, allProj
             </button>
           </div>
         </form>
+      </div>
       </div>
     </div>
   )
