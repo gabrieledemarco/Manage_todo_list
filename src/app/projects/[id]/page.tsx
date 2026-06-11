@@ -446,16 +446,15 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                             <div className="px-4 pb-4 space-y-2">
                               {(!activity.tasks || activity.tasks.length === 0) ? (
                                 <p className="text-center text-slate-500 py-2 text-sm">Nessun task in questa attività</p>
-                              ) : (
-                                [...(activity.tasks)].sort((a, b) => {
+                              ) : (() => {
+                                const sortedTasks = [...(activity.tasks || [])].sort((a, b) => {
                                   if (a.sequenceOrder != null && b.sequenceOrder != null) return a.sequenceOrder - b.sequenceOrder
                                   if (a.sequenceOrder != null) return -1
                                   if (b.sequenceOrder != null) return 1
                                   return 0
-                                }).map((task) => {
-                                  const sortedTasks = [...(activity.tasks || [])]
+                                })
+                                return sortedTasks.map((task) => {
                                   const seqBlocked = isSequentiallyBlocked(task, sortedTasks)
-                                  const taskBlocked = isTaskBlocked(task) || seqBlocked
                                   const unfinishedPrereqs = task.dependsOn?.filter(d => !d.prerequisite?.completed) || []
                                   return (
                                     <div
@@ -545,7 +544,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                     </div>
                                   )
                                 })
-                              )}
+                              })()}
                             </div>
                           )}
                         </div>
