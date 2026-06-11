@@ -56,11 +56,15 @@ if errorlevel 1 (
     pause & exit /b 1
 )
 
-:: ── Initialize database ───────────────────────────────────────
+:: ── Initialize / preserve database ───────────────────────────
 echo [3/5] Inizializzazione database...
 if not exist "%DATA_DIR%" mkdir "%DATA_DIR%"
 if not exist "%DB_FILE%" (
     copy "%SEED_DB%" "%DB_FILE%" >nul
+    echo  Database inizializzato.
+) else (
+    echo  [INFO] Versione precedente rilevata - i dati esistenti vengono preservati.
+    echo         Le migrazioni dello schema verranno applicate automaticamente al prossimo avvio.
 )
 
 :: ── Create shortcuts ──────────────────────────────────────────

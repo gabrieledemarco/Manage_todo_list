@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Versione da rilasciare (es. 0.3.0)'
+        description: 'Versione da rilasciare (es. 0.4.0)'
         required: false
-        default: '0.3.0'
+        default: '0.4.0'
 
 jobs:
   build-windows:
@@ -79,6 +79,9 @@ jobs:
           cp -r node_modules/.prisma "${DEST}/node_modules/.prisma"
           cp -r node_modules/@prisma "${DEST}/node_modules/@prisma"
 
+          # Prisma CLI — needed by start.bat to run migrate deploy on upgrade
+          cp -r node_modules/prisma "${DEST}/node_modules/prisma"
+
           # Portable Node.js binary
           cp /tmp/node-win/node-v20.18.3-win-x64/node.exe "${DEST}/node/"
 
@@ -111,6 +114,13 @@ jobs:
 
             Bundle completamente autosufficiente: **zero connessioni internet** necessarie sul PC di destinazione.
 
+            ### Novità v0.4.0
+            - **Aggiornamento sicuro — dati preservati** — l'installer rileva una versione precedente e preserva automaticamente il database esistente; le migrazioni dello schema vengono applicate ad ogni avvio tramite `prisma migrate deploy`
+            - **Gerarchia progetti** — un progetto può essere annidato all'interno di un altro progetto (padre/figlio)
+            - **Report settimanale** — pagina dedicata con riepilogo attività/task completati, in corso e da fare per la presentazione al team
+            - **Percorso documentazione** — campo opzionale su ogni Progetto/Categoria/Attività/Task per collegare la documentazione locale
+            - **Descrizioni espandibili** — i box Descrizione sono ridimensionabili verticalmente
+
             ### Novità v0.3.0
             - **Orologio live** nella sidebar (HH:MM:SS + data in italiano)
             - **Sposta elementi** — nelle finestre di modifica puoi cambiare il progetto/categoria/attività di appartenenza
@@ -126,6 +136,7 @@ jobs:
             | `server.js` + `node_modules/` | App Next.js standalone con tutte le dipendenze |
             | `.next/static/` + `public/` | Tutti gli asset statici (CSS, JS, immagini) |
             | `prisma/seed.db` | Schema SQLite pre-inizializzato — nessuna migrazione necessaria |
+            | `node_modules/prisma/` | Prisma CLI per applicare migrazioni schema ad ogni avvio |
             | `installer/` | Script install/uninstall/start per Windows |
 
             ### Installazione (con privilegi Admin)
