@@ -36,13 +36,14 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { name, description, color, parentId } = body
+    const { name, description, color, parentId, docPath } = body
 
     const project = await prisma.project.create({
       data: {
         name,
         description,
         color,
+        docPath: docPath || null,
         ...(parentId ? { parentId } : {})
       }
     })

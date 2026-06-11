@@ -42,7 +42,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { title, description, completed, dueDate, priority, activityId, reminder, reminderDays } = body
+    const { title, description, completed, dueDate, priority, activityId, reminder, reminderDays, docPath } = body
 
     const task = await prisma.task.create({
       data: {
@@ -53,7 +53,8 @@ export async function POST(request: Request) {
         priority,
         activityId,
         reminder: reminder ?? false,
-        reminderDays: reminderDays ?? 1
+        reminderDays: reminderDays ?? 1,
+        docPath: docPath || null
       }
     })
     return NextResponse.json(task, { status: 201 })

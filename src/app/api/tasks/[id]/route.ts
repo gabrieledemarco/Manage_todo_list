@@ -44,7 +44,7 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
-    const { title, description, completed, dueDate, priority, activityId, reminder, reminderDays } = body
+    const { title, description, completed, dueDate, priority, activityId, reminder, reminderDays, docPath } = body
 
     const data: Record<string, unknown> = {
       title,
@@ -54,15 +54,10 @@ export async function PUT(
       priority
     }
 
-    if (activityId !== undefined) {
-      data.activityId = activityId
-    }
-    if (reminder !== undefined) {
-      data.reminder = reminder
-    }
-    if (reminderDays !== undefined) {
-      data.reminderDays = reminderDays
-    }
+    if (activityId !== undefined) data.activityId = activityId
+    if (reminder !== undefined) data.reminder = reminder
+    if (reminderDays !== undefined) data.reminderDays = reminderDays
+    if (docPath !== undefined) data.docPath = docPath ?? null
 
     const task = await prisma.task.update({
       where: { id },

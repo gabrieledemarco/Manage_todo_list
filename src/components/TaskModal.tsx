@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { X, Plus, Bell } from 'lucide-react'
 import { Task, Activity, TaskDependency } from '@/lib/types'
+import { DocPathInput } from './DocPath'
 
 interface TaskModalProps {
   isOpen: boolean
@@ -22,6 +23,7 @@ export default function TaskModal({ isOpen, onClose, onSave, task, activityId, a
   const [selectedActivityId, setSelectedActivityId] = useState(activityId)
   const [reminder, setReminder] = useState(false)
   const [reminderDays, setReminderDays] = useState(1)
+  const [docPath, setDocPath] = useState('')
   const [loading, setLoading] = useState(false)
 
   // Dependencies state
@@ -40,6 +42,7 @@ export default function TaskModal({ isOpen, onClose, onSave, task, activityId, a
       setReminder(task.reminder ?? false)
       setReminderDays(task.reminderDays ?? 1)
       setDependencies(task.dependsOn || [])
+      setDocPath(task.docPath || '')
     } else {
       setTitle('')
       setDescription('')
@@ -49,6 +52,7 @@ export default function TaskModal({ isOpen, onClose, onSave, task, activityId, a
       setReminder(false)
       setReminderDays(1)
       setDependencies([])
+      setDocPath('')
     }
     setSelectedPrereqId('')
   }, [task, isOpen, activityId])
@@ -129,7 +133,8 @@ export default function TaskModal({ isOpen, onClose, onSave, task, activityId, a
           priority,
           activityId: selectedActivityId,
           reminder,
-          reminderDays
+          reminderDays,
+          docPath: docPath || null
         })
       })
 
@@ -205,10 +210,12 @@ export default function TaskModal({ isOpen, onClose, onSave, task, activityId, a
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
-              className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all resize-none"
+              className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all resize-y min-h-[80px]"
               placeholder="Dettagli del task..."
             />
           </div>
+
+          <DocPathInput value={docPath} onChange={setDocPath} />
 
           <div className="grid grid-cols-2 gap-4">
             <div>

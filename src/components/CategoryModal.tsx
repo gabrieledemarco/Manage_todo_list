@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 import { Category, Project } from '@/lib/types'
+import { DocPathInput } from './DocPath'
 
 interface CategoryModalProps {
   isOpen: boolean
@@ -26,6 +27,7 @@ export default function CategoryModal({ isOpen, onClose, onSave, category, proje
   const [description, setDescription] = useState('')
   const [color, setColor] = useState('#22c55e')
   const [selectedProjectId, setSelectedProjectId] = useState(projectId)
+  const [docPath, setDocPath] = useState('')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -34,11 +36,13 @@ export default function CategoryModal({ isOpen, onClose, onSave, category, proje
       setDescription(category.description || '')
       setColor(category.color)
       setSelectedProjectId(category.projectId)
+      setDocPath(category.docPath || '')
     } else {
       setName('')
       setDescription('')
       setColor('#22c55e')
       setSelectedProjectId(projectId)
+      setDocPath('')
     }
   }, [category, isOpen, projectId])
 
@@ -54,7 +58,7 @@ export default function CategoryModal({ isOpen, onClose, onSave, category, proje
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, description, color, projectId: selectedProjectId })
+        body: JSON.stringify({ name, description, color, projectId: selectedProjectId, docPath: docPath || null })
       })
 
       if (res.ok) {
@@ -123,10 +127,12 @@ export default function CategoryModal({ isOpen, onClose, onSave, category, proje
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
-              className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all resize-none"
+              className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all resize-y min-h-[80px]"
               placeholder="Breve descrizione..."
             />
           </div>
+
+          <DocPathInput value={docPath} onChange={setDocPath} />
 
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">

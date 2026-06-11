@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 import { Project } from '@/lib/types'
+import { DocPathInput } from './DocPath'
 
 interface ProjectModalProps {
   isOpen: boolean
@@ -25,6 +26,7 @@ export default function ProjectModal({ isOpen, onClose, onSave, project, allProj
   const [description, setDescription] = useState('')
   const [color, setColor] = useState('#6366f1')
   const [parentId, setParentId] = useState<string>('')
+  const [docPath, setDocPath] = useState('')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -33,11 +35,13 @@ export default function ProjectModal({ isOpen, onClose, onSave, project, allProj
       setDescription(project.description || '')
       setColor(project.color)
       setParentId(project.parentId || '')
+      setDocPath(project.docPath || '')
     } else {
       setName('')
       setDescription('')
       setColor('#6366f1')
       setParentId('')
+      setDocPath('')
     }
   }, [project, isOpen])
 
@@ -72,7 +76,7 @@ export default function ProjectModal({ isOpen, onClose, onSave, project, allProj
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, description, color, parentId: parentId || null })
+        body: JSON.stringify({ name, description, color, parentId: parentId || null, docPath: docPath || null })
       })
 
       if (res.ok) {
@@ -139,7 +143,7 @@ export default function ProjectModal({ isOpen, onClose, onSave, project, allProj
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none resize-none"
+              className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none resize-y min-h-[80px]"
               style={inputStyle}
               onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--accent)'}
               onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'}
@@ -166,6 +170,8 @@ export default function ProjectModal({ isOpen, onClose, onSave, project, allProj
               ))}
             </select>
           </div>
+
+          <DocPathInput value={docPath} onChange={setDocPath} />
 
           <div>
             <label className="block text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
