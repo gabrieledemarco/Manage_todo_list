@@ -5,12 +5,22 @@ export async function GET() {
   try {
     const projects = await prisma.project.findMany({
       include: {
+        children: {
+          include: {
+            categories: {
+              include: {
+                activities: {
+                  include: { tasks: true }
+                }
+              }
+            },
+            children: true
+          }
+        },
         categories: {
           include: {
             activities: {
-              include: {
-                tasks: true
-              }
+              include: { tasks: true }
             }
           }
         }
@@ -26,10 +36,15 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { name, description, color } = body
-    
+    const { name, description, color, parentId } = body
+
     const project = await prisma.project.create({
-      data: { name, description, color }
+      data: {
+        name,
+        description,
+        color,
+        ...(parentId ? { parentId } : {})
+      }
     })
     return NextResponse.json(project, { status: 201 })
   } catch (error) {

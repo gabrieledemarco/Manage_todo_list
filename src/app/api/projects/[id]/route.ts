@@ -54,11 +54,15 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
-    const { name, description, color } = body
+    const { name, description, color, parentId } = body
+
+    if (parentId === id) {
+      return NextResponse.json({ error: 'A project cannot be its own parent' }, { status: 400 })
+    }
 
     const project = await prisma.project.update({
       where: { id },
-      data: { name, description, color }
+      data: { name, description, color, parentId: parentId ?? null }
     })
     return NextResponse.json(project)
   } catch (error) {
