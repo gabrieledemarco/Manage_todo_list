@@ -25,15 +25,17 @@ if not exist "%NODE%" (
 :: Create data directory if missing
 if not exist "%DATA_DIR%" mkdir "%DATA_DIR%"
 
-:: Initialize database on first run
+:: Initialize database on first run (preserves existing data on upgrade)
 if not exist "%DB_FILE%" (
-    echo Initializing database for the first time...
+    echo Inizializzazione database...
     copy "%SEED_DB%" "%DB_FILE%" >nul
     if errorlevel 1 (
         echo [ERROR] Could not initialize database.
         pause & exit /b 1
     )
-    echo Database initialized.
+    echo Database inizializzato.
+) else (
+    echo Database esistente rilevato.
 )
 
 :: Environment
@@ -42,6 +44,18 @@ set NODE_ENV=production
 set PORT=%PORT%
 set HOSTNAME=127.0.0.1
 set NEXT_TELEMETRY_DISABLED=1
+
+:: Apply pending schema migrations (safe on every startup — skips already-applied)
+set PRISMA_CLI=%ROOT%node_modules\prisma\build\index.js
+if exist "%PRISMA_CLI%" (
+    echo Verifica aggiornamenti schema database...
+    "%NODE%" "%PRISMA_CLI%" migrate deploy --schema "%ROOT%prisma\schema.prisma" >nul 2>&1
+    if errorlevel 1 (
+        echo [ATTENZIONE] Impossibile applicare le migrazioni - controllare il log.
+    ) else (
+        echo Schema database aggiornato.
+    )
+)
 
 echo.
 echo  +------------------------------------------+

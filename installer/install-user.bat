@@ -32,10 +32,16 @@ if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
 xcopy /E /I /Y /Q "%BUNDLE_DIR%." "%INSTALL_DIR%\"
 if errorlevel 1 (echo [ERRORE] Impossibile copiare i file. & pause & exit /b 1)
 
-:: Inizializza database
+:: Inizializza / preserva database
 echo [2/4] Inizializzazione database...
 if not exist "%DATA_DIR%" mkdir "%DATA_DIR%"
-if not exist "%DB_FILE%" copy "%SEED_DB%" "%DB_FILE%" >nul
+if not exist "%DB_FILE%" (
+    copy "%SEED_DB%" "%DB_FILE%" >nul
+    echo  Database inizializzato.
+) else (
+    echo  [INFO] Versione precedente rilevata - i dati esistenti vengono preservati.
+    echo         Le migrazioni dello schema verranno applicate automaticamente al prossimo avvio.
+)
 
 :: Collegamento sul Desktop (solo utente corrente - non serve Admin)
 echo [3/4] Creazione collegamento Desktop...
