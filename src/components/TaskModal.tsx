@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Plus, Bell, ListOrdered } from 'lucide-react'
 import { Task, Activity, TaskDependency } from '@/lib/types'
 import { DocPathInput } from './DocPath'
@@ -159,10 +160,10 @@ export default function TaskModal({ isOpen, onClose, onSave, task, activityId, a
   const prereqsAlreadyAdded = new Set(dependencies.map(d => d.prerequisiteId))
   const availableForAdd = availableTasks.filter(t => !prereqsAlreadyAdded.has(t.id))
 
-  return (
-    <div className="fixed inset-0 overflow-y-auto z-50 bg-black/60 backdrop-blur-sm">
-      <div className="min-h-full flex items-center justify-center p-4 sm:p-8">
-      <div className="w-full max-w-md bg-slate-800 rounded-2xl shadow-2xl border border-slate-700">
+  return createPortal(
+    <div style={{ position: 'fixed', inset: 0, overflowY: 'auto', zIndex: 50 }} className="bg-black/60 backdrop-blur-sm">
+      <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-slate-800 rounded-2xl shadow-2xl border border-slate-700 max-h-[calc(100vh-2rem)] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-slate-700">
           <h2 className="text-xl font-semibold text-white">
             {task ? 'Modifica Task' : 'Nuovo Task'}
@@ -399,6 +400,7 @@ export default function TaskModal({ isOpen, onClose, onSave, task, activityId, a
         </form>
       </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { Project } from '@/lib/types'
 import { DocPathInput } from './DocPath'
@@ -98,11 +99,11 @@ export default function ProjectModal({ isOpen, onClose, onSave, project, allProj
     color: 'var(--text-primary)'
   }
 
-  return (
-    <div className="fixed inset-0 overflow-y-auto z-50" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(12px)' }}>
-      <div className="min-h-full flex items-center justify-center p-4 sm:p-8">
-      <div className="rounded-2xl shadow-2xl w-full max-w-md animate-slide-in"
-        style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-strong)' }}>
+  return createPortal(
+    <div style={{ position: 'fixed', inset: 0, overflowY: 'auto', zIndex: 50, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(12px)' }}>
+      <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="rounded-2xl shadow-2xl w-full max-w-md animate-slide-in overflow-y-auto"
+        style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-strong)', maxHeight: 'calc(100vh - 2rem)' }}>
         <div className="flex items-center justify-between px-6 py-5" style={{ borderBottom: '1px solid var(--border)' }}>
           <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
             {project ? 'Modifica Progetto' : 'Nuovo Progetto'}
@@ -218,6 +219,7 @@ export default function ProjectModal({ isOpen, onClose, onSave, project, allProj
         </form>
       </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
